@@ -1,122 +1,177 @@
-# AttendAI — AI-Powered Smart Attendance & Workforce Intelligence
+# IntelliPresence — AI-Powered Smart Attendance & Workforce Intelligence
 
-AttendAI is a production-grade multi-tenant SaaS application designed to manage organizational workforce attendance, trace real-time indicators, and automate communication channels.
+> **IntelliPresence** is a production-grade, multi-tenant SaaS platform for managing organizational attendance, tracking real-time workforce indicators, and automating communication workflows — built for schools, colleges, and enterprises.
+
+[![Next.js](https://img.shields.io/badge/Next.js-16-black?logo=next.js)](https://nextjs.org/)
+[![Python](https://img.shields.io/badge/Python-Flask-blue?logo=python)](https://flask.palletsprojects.com/)
+[![Supabase](https://img.shields.io/badge/Supabase-PostgreSQL-green?logo=supabase)](https://supabase.com/)
+[![AWS](https://img.shields.io/badge/AWS-S3%20%7C%20Rekognition%20%7C%20SES-orange?logo=amazon-aws)](https://aws.amazon.com/)
+[![n8n](https://img.shields.io/badge/n8n-Workflow%20Automation-red?logo=n8n)](https://n8n.io/)
 
 ---
 
-## 🛠️ Architecture & Technology Stack
+## 🏗️ Architecture & Technology Stack
 
-The platform is designed around a three-tier architecture:
+IntelliPresence is built on a three-tier cloud-native architecture:
 
-1. **Frontend Portal (Next.js 14 App Router)**
-   - Single-Page dashboard framework using dynamic HSL Tailwind CSS variables.
-   - Animated interactions powered by **Framer Motion**.
-   - Client state orchestration using persistent **Zustand** stores.
-   - Visualized metrics representation using **Recharts**.
+### 1. Frontend Portal — `attendai/` (Next.js 16 App Router)
+- Multi-role dashboard system: **Admin**, **Teacher**, **Student** portals
+- Dynamic HSL-based Tailwind CSS design system with dark-mode support
+- Animated interactions powered by **Framer Motion**
+- Client-state orchestration via persistent **Zustand** stores
+- Rich data visualization using **Recharts**
+- Form validation with **React Hook Form + Zod**
 
-2. **Server API Layer (Python Flask)**
-   - Decoupled REST controllers with standard response envelopes.
-   - Custom decorator authorization gates decoding **Supabase JWTs**.
-   - Secure integrations with **AWS S3** client nodes dispatching presigned upload tokens.
-   - Automation bridges sending payload events to **n8n workflows**.
+### 2. Server API Layer — `backend/` (Python Flask)
+- Decoupled REST controllers with standardized response envelopes
+- Custom decorator-based authorization gates decoding **Supabase JWTs**
+- **AWS S3** integration for presigned media upload tokens
+- **n8n** webhook bridge for automated workflow triggers
 
-3. **Cloud Database (Supabase PostgreSQL)**
-   - Relational schema structure holding profiles, courses, schedules, and leaves.
-   - Custom database indexes enforcing lookup performance metrics.
-   - Multi-tenant isolation guarded by Postgres **Row-Level Security (RLS)**.
+### 3. Cloud Database — `database/` (Supabase PostgreSQL)
+- Relational schema for profiles, courses, schedules, attendance, and leaves
+- Custom indexes for high-performance lookups
+- Multi-tenant isolation via Postgres **Row-Level Security (RLS)**
+
+### 4. Cloud Integrations — `integrations/`
+- **AWS** — Lambda, S3, Rekognition (biometric attendance), SES (transactional email)
+- **n8n** — Automated attendance alerts, daily reports, leave approval workflows
 
 ---
 
 ## 📂 Project Structure
 
 ```
-attendence/
-├── attendai/                    # NEXT.JS FRONTEND
+intellipresence/
+├── attendai/                       # ⚡ NEXT.JS FRONTEND
 │   ├── src/
-│   │   ├── app/                 # Routes: admin, teacher, student portals, auth, landing
-│   │   ├── components/          # Reusable layouts, sidebars, charts, badges
-│   │   ├── lib/                 # Mock data, supabase client configurations
-│   │   ├── store/               # Zustand auth, UI, notification states
-│   │   └── types/               # Normalized TypeScript interfaces
+│   │   ├── app/                    # Routes: admin, teacher, student portals, auth, landing
+│   │   │   ├── admin/              # Admin dashboard (departments, reports, analytics)
+│   │   │   ├── teacher/            # Teacher portal (classes, attendance, leave review)
+│   │   │   ├── student/            # Student portal (heatmap, leave requests)
+│   │   │   ├── login/              # Auth flows (login, register, forgot/reset password)
+│   │   │   └── setup/              # Organization onboarding wizard
+│   │   ├── components/             # Reusable UI (layouts, sidebars, charts, modals)
+│   │   ├── lib/                    # Supabase client, mock data, API helpers
+│   │   ├── store/                  # Zustand stores (auth, UI, notifications)
+│   │   └── types/                  # Normalized TypeScript interfaces
 │   └── tailwind.config.ts
 │
-├── backend/                     # FLASK API GATEWAY
+├── backend/                        # 🐍 FLASK API GATEWAY
 │   ├── app/
-│   │   ├── auth/                # Supabase JWT key decoder
-│   │   ├── config/              # settings.py variables validator
-│   │   ├── middleware/          # Flask g request contexts gate decorators
-│   │   ├── routes/              # Modular controller endpoints blueprints
-│   │   └── utils/               # envelope format standardizers
+│   │   ├── auth/                   # Supabase JWT decoder
+│   │   ├── config/                 # settings.py environment validator
+│   │   ├── middleware/             # Flask request-context auth gates
+│   │   ├── routes/                 # Blueprints: auth, students, teachers, courses, invitations
+│   │   └── utils/                  # Response envelope standardizers
 │   ├── run.py
 │   └── requirements.txt
 │
-└── database/
-    └── schema.sql               # Supabase database creation DDL script
+├── database/
+│   └── schema.sql                  # Supabase DDL — full schema creation script
+│
+└── integrations/                   # ☁️ THIRD-PARTY INTEGRATIONS
+    ├── aws/
+    │   ├── lambda/                 # Serverless attendance processing functions
+    │   ├── rekognition/            # Face recognition for biometric check-in
+    │   ├── s3/                     # Media & report storage
+    │   └── ses/                    # Transactional email delivery
+    └── n8n/
+        ├── workflows/              # Exported n8n workflow JSON files
+        └── webhooks/               # Webhook payload schemas & configs
 ```
 
 ---
 
-## ⚙️ Development Environment Setup
+## ⚙️ Development Setup
 
-### 1. Database Setup
-1. Open your project dashboard in **Supabase**.
-2. Navigate to the **SQL Editor** tab.
-3. Open a new query editor tab, paste the contents of `database/schema.sql`, and execute it.
-4. Make sure that Row Level Security (RLS) is active on the created tables.
-
-### 2. Backend Setup
-1. Navigate to the `backend` directory:
-   ```bash
-   cd backend
-   ```
-2. Create and activate a virtual environment:
-   ```bash
-   python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On Linux/macOS:
-   source venv/bin/activate
-   ```
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-4. Copy the environment variables example:
-   ```bash
-   cp .env.example .env
-   ```
-5. Modify the created `.env` file to match your Supabase API credentials, AWS S3 keys, and n8n webhook targets.
-6. Start the development server:
-   ```bash
-   python run.py
-   ```
-
-### 3. Frontend Setup
-1. Navigate to the `attendai` directory:
-   ```bash
-   cd attendai
-   ```
-2. Install npm packages:
-   ```bash
-   npm install
-   ```
-3. Copy environment settings file:
-   ```bash
-   cp .env.local.example .env.local
-   ```
-4. Configure your `.env.local` with Supabase project credentials.
-5. Launch the local dev compiler:
-   ```bash
-   npm run dev
-   ```
-6. Open your web browser at `http://localhost:3000`.
+### Prerequisites
+- Node.js 20+, npm
+- Python 3.11+
+- A [Supabase](https://supabase.com) project
+- (Optional) AWS account & n8n instance for full integration
 
 ---
 
-## 🔒 Multi-Tenant Role Operations
+### 1. 🗄️ Database Setup
+1. Open your [Supabase](https://supabase.com) project dashboard.
+2. Go to the **SQL Editor** tab.
+3. Paste the contents of `database/schema.sql` and execute it.
+4. Verify that **Row Level Security (RLS)** is enabled on all tables.
 
-AttendAI supports 3 distinct authenticated portals depending on user claims:
+---
 
-- **Organization Admins (`/admin`)**: Fully configure academic departments, crud students/teachers directories, review audit logs, toggle integrations, and generate compiled reports.
-- **Teaching Faculty (`/teacher`)**: View daily teaching schedules, submit session roll call sheets, and authorize/reject student leave application tokens.
-- **Enrolled Students (`/student`)**: Heatmap metrics display tracking presence averages, and submit leave requests.
+### 2. 🐍 Backend Setup
+
+```bash
+cd backend
+
+# Create and activate virtual environment
+python -m venv venv
+# Windows:
+venv\Scripts\activate
+# Linux/macOS:
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Configure environment
+cp .env.example .env
+# Edit .env with your Supabase credentials, AWS keys, and n8n webhook URLs
+
+# Start development server
+python run.py
+```
+
+Backend runs at `http://localhost:5000`.
+
+---
+
+### 3. ⚡ Frontend Setup
+
+```bash
+cd attendai
+
+# Install packages
+npm install
+
+# Configure environment
+cp .env.local.example .env.local
+# Edit .env.local with your Supabase project URL and anon key
+
+# Start development server
+npm run dev
+```
+
+Frontend runs at `http://localhost:3000`.
+
+---
+
+## 🔒 Multi-Tenant Role System
+
+IntelliPresence supports **3 authenticated portals** based on user role claims:
+
+| Role | Portal | Capabilities |
+|---|---|---|
+| **Organization Admin** | `/admin` | Manage departments, student/teacher directories, audit logs, integrations, reports |
+| **Teaching Faculty** | `/teacher` | View teaching schedules, submit attendance, approve/reject leave requests |
+| **Enrolled Students** | `/student` | View attendance heatmap, check leave balances, submit leave requests |
+
+---
+
+## ☁️ Cloud Integrations
+
+| Service | Purpose | Folder |
+|---|---|---|
+| AWS Lambda | Serverless attendance processing & cron jobs | `integrations/aws/lambda/` |
+| AWS Rekognition | Biometric face-based attendance check-in | `integrations/aws/rekognition/` |
+| AWS S3 | Photo storage, report exports | `integrations/aws/s3/` |
+| AWS SES | Attendance alerts, report emails | `integrations/aws/ses/` |
+| n8n | Workflow automation (alerts, reports, approvals) | `integrations/n8n/workflows/` |
+
+---
+
+## 📄 License
+
+© 2026 IntelliPresence. All rights reserved.
