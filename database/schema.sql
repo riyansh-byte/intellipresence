@@ -151,6 +151,32 @@ CREATE TABLE audit_logs (
 );
 
 -- ─────────────────────────────────────────────────────────────────────
+-- 6.5 USER INVITATIONS SYSTEM
+-- ─────────────────────────────────────────────────────────────────────
+
+CREATE TABLE invitations (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    inviter_id UUID REFERENCES profiles(id) ON DELETE SET NULL,
+    email VARCHAR(255) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    role VARCHAR(50) NOT NULL CHECK (role IN ('teacher', 'student')),
+    -- Additional role-specific data
+    teacher_id VARCHAR(50),
+    student_id VARCHAR(50),
+    roll_number VARCHAR(100),
+    department_id UUID REFERENCES departments(id) ON DELETE SET NULL,
+    designation VARCHAR(150),
+    -- Invitation status
+    status VARCHAR(50) DEFAULT 'pending' NOT NULL CHECK (status IN ('pending', 'accepted', 'expired', 'cancelled')),
+    expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
+    accepted_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL,
+    UNIQUE (organization_id, email)
+);
+
+-- ─────────────────────────────────────────────────────────────────────
 -- 7. PERFORMANCE INDEXES
 -- ─────────────────────────────────────────────────────────────────────
 
@@ -161,6 +187,8 @@ CREATE INDEX idx_attendance_session ON attendance(session_id);
 CREATE INDEX idx_attendance_student ON attendance(student_id);
 CREATE INDEX idx_leave_student ON leave_requests(student_id);
 CREATE INDEX idx_audit_org ON audit_logs(organization_id);
+CREATE INDEX idx_invitations_org ON invitations(organization_id);
+CREATE INDEX idx_invitations_email ON invitations(email);
 
 -- ─────────────────────────────────────────────────────────────────────
 -- 8. ROW LEVEL SECURITY (RLS) FOR MULTI-TENANCY
@@ -212,4 +240,11 @@ CREATE POLICY leave_tenant_isolation ON leave_requests
 
 -- RLS Policy: Audit logs access isolation
 CREATE POLICY audit_tenant_isolation ON audit_logs
+    FOR ALL USING (organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid()));
+
+-- Enable RLS on invitations
+ALTER TABLE invitations ENABLE ROW LEVEL SECURITY;
+
+-- RLS Policy: Invitations access isolation
+CREATE POLICY invitation_tenant_isolation ON invitations
     FOR ALL USING (organization_id = (SELECT organization_id FROM profiles WHERE id = auth.uid()));

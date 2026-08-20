@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { StatsCard } from "@/components/ui/stats-card";
 import { SectionCard } from "@/components/ui/page-header";
@@ -13,13 +14,14 @@ import {
 } from "recharts";
 import {
   Users, GraduationCap, Clock, TrendingUp, CalendarCheck,
-  UserPlus, FileText, Plus, ArrowRight, Zap, AlertTriangle,
+  UserPlus, FileText, Plus, ArrowRight, Zap, AlertTriangle, Building2, Mail
 } from "lucide-react";
-import { mockDashboardStats, mockTeachers, mockStudents } from "@/lib/mock-data";
+import { mockDashboardStats } from "@/lib/mock-data";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { format } from "date-fns";
+import { studentsApi, teachersApi, departmentsApi, invitationsApi } from "@/lib/api";
 
 // ─────────────────────────────────────────
 // Custom Chart Tooltip
@@ -49,7 +51,7 @@ function ActivityIcon({ type }: { type: string }) {
   const icons: Record<string, { icon: React.ReactNode; bg: string }> = {
     attendance_marked: { icon: <CalendarCheck className="w-3.5 h-3.5" />, bg: "bg-success/10 text-success" },
     student_added: { icon: <UserPlus className="w-3.5 h-3.5" />, bg: "bg-brand-500/10 text-brand-500" },
-    report_generated: { icon: <FileText className="w-3.5 h-3.5" />, bg: "bg-violet-500/10 text-violet-500" },
+    report_generated: { icon: <FileText className="w-3.5 h-3.5" />, bg: "bg-emerald-500/10 text-emerald-600" },
     leave_approved: { icon: <CalendarCheck className="w-3.5 h-3.5" />, bg: "bg-warning/10 text-warning" },
     session_created: { icon: <Zap className="w-3.5 h-3.5" />, bg: "bg-info/10 text-info" },
   };
@@ -97,18 +99,57 @@ function QuickAction({
 // ─────────────────────────────────────────
 
 export default function AdminDashboardPage() {
+  const [mounted, setMounted] = useState(false);
+  const [liveStudents, setLiveStudents] = useState<any[]>([]);
+  const [liveTeachers, setLiveTeachers] = useState<any[]>([]);
+  const [liveDepartments, setLiveDepartments] = useState<any[]>([]);
+  const [liveInvitations, setLiveInvitations] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setMounted(true);
+    async function fetchLiveData() {
+      try {
+        const [sRes, tRes, dRes, iRes] = await Promise.allSettled([
+          studentsApi.list() as any,
+          teachersApi.list() as any,
+          departmentsApi.list() as any,
+          invitationsApi.list() as any,
+        ]);
+        if (sRes.status === "fulfilled") setLiveStudents(sRes.value?.data || []);
+        if (tRes.status === "fulfilled") setLiveTeachers(tRes.value?.data || []);
+        if (dRes.status === "fulfilled") setLiveDepartments(dRes.value?.data || []);
+        if (iRes.status === "fulfilled") setLiveInvitations(iRes.value?.data || []);
+      } catch (err) {
+        console.error("Error fetching live dashboard metrics:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchLiveData();
+  }, []);
+
   const stats = mockDashboardStats;
   const today = new Date();
+  const greeting = mounted
+    ? today.getHours() < 12
+      ? "morning"
+      : today.getHours() < 17
+      ? "afternoon"
+      : "evening"
+    : "day";
+
+  const formattedDate = mounted ? format(today, "EEEE, MMMM d, yyyy") : "";
+
   const trendData = stats.weekly_trend.slice(-14).map((t) => ({
     ...t,
     date: format(new Date(t.date), "MMM d"),
   }));
-  const deptData = stats.department_comparison;
+  const deptData = liveDepartments.length > 0 
+    ? liveDepartments.map(d => ({ department_name: d.name, percentage: d.student_count || 85 }))
+    : stats.department_comparison;
 
-  // Risk students (attendance < 75%)
-  const riskStudents = mockStudents
-    .filter((s) => (s.attendance_percentage ?? 100) < 75)
-    .slice(0, 5);
+  const riskStudents = liveStudents.filter((s) => (s.attendance_percentage ?? 100) < 75).slice(0, 5);
 
   return (
     <DashboardLayout
@@ -123,10 +164,10 @@ export default function AdminDashboardPage() {
         >
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Good {today.getHours() < 12 ? "morning" : today.getHours() < 17 ? "afternoon" : "evening"}, Admin! 👋
+              Good {greeting}, Admin! 👋
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              {format(today, "EEEE, MMMM d, yyyy")} — Here's what's happening today.
+              {formattedDate} — Here's what's happening today.
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -149,40 +190,35 @@ export default function AdminDashboardPage() {
       {/* ── Stats Row ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatsCard
-          title="Present Today"
-          value={stats.today.present}
-          subtitle={`of ${stats.today.total} students`}
+          title="Enrolled Students"
+          value={liveStudents.length}
+          subtitle={`across ${liveDepartments.length} departments`}
           icon={<Users className="w-5 h-5" />}
-          variant="success"
-          trend={{ value: 3.2 }}
+          variant="primary"
           delay={0}
         />
         <StatsCard
-          title="Absent Today"
-          value={stats.today.absent}
-          subtitle="Need follow-up"
-          icon={<AlertTriangle className="w-5 h-5" />}
-          variant="danger"
-          trend={{ value: -1.5 }}
+          title="Active Teachers"
+          value={liveTeachers.length}
+          subtitle="Faculty members"
+          icon={<GraduationCap className="w-5 h-5" />}
+          variant="success"
           delay={0.05}
         />
         <StatsCard
-          title="Late Arrivals"
-          value={stats.today.late}
-          subtitle="Marked late"
-          icon={<Clock className="w-5 h-5" />}
+          title="Departments"
+          value={liveDepartments.length}
+          subtitle="Academic units"
+          icon={<Building2 className="w-5 h-5" />}
           variant="warning"
-          trend={{ value: 0 }}
           delay={0.1}
         />
         <StatsCard
-          title="Avg Attendance"
-          value={stats.today.percentage}
-          suffix="%"
-          subtitle="This month"
-          icon={<TrendingUp className="w-5 h-5" />}
-          variant="primary"
-          trend={{ value: 2.1, label: "vs last month" }}
+          title="Pending Invites"
+          value={liveInvitations.length}
+          subtitle="Awaiting activation"
+          icon={<Mail className="w-5 h-5" />}
+          variant="danger"
           delay={0.15}
         />
       </div>
@@ -248,7 +284,7 @@ export default function AdminDashboardPage() {
             <div className="grid grid-cols-4 gap-3">
               <QuickAction icon={<CalendarCheck className="w-5 h-5 text-success" />} label="Mark Attendance" href="/admin/attendance" color="bg-success/10" />
               <QuickAction icon={<UserPlus className="w-5 h-5 text-brand-500" />} label="Add Student" href="/admin/students" color="bg-brand-500/10" />
-              <QuickAction icon={<FileText className="w-5 h-5 text-violet-500" />} label="Generate Report" href="/admin/reports" color="bg-violet-500/10" />
+              <QuickAction icon={<FileText className="w-5 h-5 text-emerald-600" />} label="Generate Report" href="/admin/reports" color="bg-emerald-500/10" />
               <QuickAction icon={<GraduationCap className="w-5 h-5 text-warning" />} label="Add Teacher" href="/admin/teachers" color="bg-warning/10" />
             </div>
           </SectionCard>
@@ -306,7 +342,7 @@ export default function AdminDashboardPage() {
                     <Avatar className="w-8 h-8">
                       <AvatarImage src={student.avatar_url} />
                       <AvatarFallback className="text-xs bg-muted">
-                        {student.full_name.split(" ").map((n) => n[0]).join("")}
+                        {student.full_name.split(" ").map((n: string) => n[0]).join("")}
                       </AvatarFallback>
                     </Avatar>
                     <div className="flex-1 min-w-0">

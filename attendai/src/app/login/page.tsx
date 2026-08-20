@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store";
@@ -10,58 +10,133 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2, ArrowRight, Sparkles, Brain, Lock, Mail } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase/client";
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter();
   const { setUser } = useAuthStore();
-  const [email, setEmail] = useState("admin@attendai.com");
-  const [password, setPassword] = useState("password");
+  const searchParams = useSearchParams();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [roleSelection, setRoleSelection] = useState<"org_admin" | "teacher" | "student">("org_admin");
+  const [formError, setFormError] = useState("");
+
+  useEffect(() => {
+    const hasRecoveryQuery =
+      searchParams.get("type") === "recovery" ||
+      Boolean(searchParams.get("token_hash")) ||
+      Boolean(searchParams.get("code"));
+    const hashParams = new URLSearchParams(window.location.hash.slice(1));
+    const hasRecoveryHash =
+      hashParams.get("type") === "recovery" ||
+      Boolean(hashParams.get("access_token"));
+
+    if (hasRecoveryQuery || hasRecoveryHash) {
+      router.replace(`/reset-password${window.location.search}${window.location.hash}`);
+      return;
+    }
+
+    if (searchParams.get("registered") === "1") {
+      toast.success("Account created! Please sign in to complete your setup.");
+    }
+  }, [router, searchParams]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
     if (!email || !password) {
-      toast.error("Please fill in all fields");
+      setFormError("Please fill in all fields");
       return;
     }
 
     setIsLoading(true);
-    // Simulate Supabase login
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setIsLoading(false);
 
-    // Mock successful authentication
-    const mockUser = {
-      id: "usr_mock_001",
-      email,
-      full_name: roleSelection === "org_admin" 
-        ? "Alex Mercer" 
-        : roleSelection === "teacher" 
-        ? "Prof. Anand Krishnan" 
-        : "Rahul Sharma",
-      role: roleSelection,
-      avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${roleSelection}`,
-      organization_id: "org_mock_123",
-      organization: {
-        id: "org_mock_123",
-        name: "Apex Institute of Technology",
-        slug: "apex-tech",
-        logo_url: "",
-        plan: "enterprise" as const,
-      },
-    };
+    // Step 1: Supabase sign-in
+    const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+    if (signInError) {
+      setIsLoading(false);
+      setFormError(signInError.message || "Invalid email or password");
+      return;
+    }
 
-    setUser(mockUser);
-    toast.success("Successfully logged in!");
+    const token = signInData.session?.access_token;
+    if (!token) {
+      setIsLoading(false);
+      setFormError("Sign-in succeeded but no session token was returned.");
+      return;
+    }
 
-    // Route based on role
-    if (roleSelection === "org_admin") {
-      router.push("/admin");
-    } else if (roleSelection === "teacher") {
-      router.push("/teacher");
-    } else {
-      router.push("/student");
+    // Step 2: Fetch role from backend with fresh token
+    try {
+      let apiUrl = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:5000/api";
+      if (apiUrl && !apiUrl.endsWith("/api")) {
+        apiUrl = `${apiUrl}/api`;
+      }
+      const res = await fetch(`${apiUrl}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const msg = body?.message || `Server error (${res.status})`;
+
+        if (res.status === 404 || msg.toLowerCase().includes("not found")) {
+          // Try accepting pending invitation (teacher/student first login)
+          try {
+            const acceptRes = await fetch(`${apiUrl}/invitations/accept`, {
+              method: "POST",
+              headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+              body: JSON.stringify({}),
+            });
+            if (acceptRes.ok) {
+              toast.success("Account activated!");
+              window.location.href = "/reset-password?message=Please+set+your+password.";
+              return;
+            }
+          } catch {}
+          // Org admin first-time setup
+          window.location.href = "/setup";
+          return;
+        }
+
+        setIsLoading(false);
+        setFormError(msg);
+        return;
+      }
+
+      const data = await res.json();
+      const profile = data?.data?.profile;
+      const org = data?.data?.organization;
+      const role = profile?.role;
+
+      // Step 3: Store user in Zustand (writes to localStorage) BEFORE navigating
+      setUser({
+        id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        organization_id: profile.organization_id,
+        organization: {
+          id: org?.id || "",
+          name: org?.name || "",
+          slug: org?.domain || "",
+          logo_url: "",
+          plan: "starter",
+        },
+      });
+
+      const targetUrl = role === "org_admin" ? "/admin"
+        : role === "teacher" ? "/teacher"
+        : role === "student" ? "/student"
+        : "/";
+
+      window.location.replace(targetUrl);
+
+    } catch (err: any) {
+      setIsLoading(false);
+      setFormError(`Cannot connect to server: ${err?.message || "http://localhost:5000 not reachable"}`);
     }
   };
 
@@ -78,17 +153,24 @@ export default function LoginPage() {
           <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center shadow-brand-sm">
             <Shield className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-bold gradient-text">AttendAI</span>
+          <span className="text-sm font-bold gradient-text">IntelliPresence</span>
         </Link>
 
         {/* Form Container */}
         <div className="my-auto py-8 max-w-md w-full mx-auto relative z-10">
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold tracking-tight mb-1.5">Welcome back</h1>
-            <p className="text-sm text-muted-foreground">
-              Sign in to manage your organization's attendance intelligence
-            </p>
-          </div>
+          <>
+              <div className="mb-6">
+                <h1 className="text-2xl font-bold tracking-tight mb-1.5">Welcome back</h1>
+                <p className="text-sm text-muted-foreground">
+                  Sign in to manage your organization's attendance intelligence
+                </p>
+              </div>
+
+          {formError && (
+            <div className="p-3 mb-4 border border-destructive/20 bg-destructive/10 text-destructive text-xs rounded-xl font-medium">
+              {formError}
+            </div>
+          )}
 
           {/* Role selector */}
           <div className="grid grid-cols-3 gap-2 p-1.5 bg-muted rounded-xl border border-border/60 mb-6 text-xs font-medium">
@@ -171,6 +253,7 @@ export default function LoginPage() {
               Create an organization
             </Link>
           </p>
+          </>
         </div>
 
         {/* Footer */}
@@ -184,7 +267,7 @@ export default function LoginPage() {
         {/* Animated gradients */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-violet-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
         {/* Top Info */}
@@ -242,10 +325,23 @@ export default function LoginPage() {
 
         {/* Footer info */}
         <div className="flex items-center justify-between text-xs text-muted-foreground/60 relative z-10 shrink-0">
-          <span>AttendAI Platform v1.2</span>
+          <span>IntelliPresence Platform v1.2</span>
           <span>Enterprise Grade SaaS</span>
         </div>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex flex-col items-center justify-center bg-background p-6">
+        <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+        <p className="text-xs text-muted-foreground mt-2">Loading login...</p>
+      </div>
+    }>
+      <LoginContent />
+    </Suspense>
   );
 }

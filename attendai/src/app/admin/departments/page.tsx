@@ -5,49 +5,64 @@ import { PageHeader, SectionCard } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { mockDepartments } from "@/lib/mock-data";
 import { motion } from "framer-motion";
-import { useState } from "react";
-import {
-  Plus, Search, GraduationCap, Users, BookOpen, Trash2, Edit3, Settings
-} from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Search, GraduationCap, Users, Loader2, CheckCircle2, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { departmentsApi, type Department } from "@/lib/api";
 
 export default function DepartmentsPage() {
   const [search, setSearch] = useState("");
-  const [departments, setDepartments] = useState(mockDepartments);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
-  // Modal / Input forms triggers
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
 
-  const handleAdd = (e: React.FormEvent) => {
+  async function loadDepartments() {
+    setLoading(true);
+    try {
+      const res = await departmentsApi.list() as any;
+      setDepartments(res?.data ?? []);
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to load departments");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { loadDepartments(); }, []);
+
+  const handleAdd = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newDeptName || !newDeptCode) {
       toast.error("Please fill in department name and code");
       return;
     }
-    const newDept = {
-      id: `dept_${Date.now()}`,
-      organization_id: "org_default",
-      name: newDeptName,
-      code: newDeptCode.toUpperCase(),
-      is_active: true,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    };
-    setDepartments([...departments, newDept]);
-    setNewDeptName("");
-    setNewDeptCode("");
-    toast.success("Department added successfully!");
+    setSubmitting(true);
+    try {
+      await departmentsApi.create({ name: newDeptName, code: newDeptCode.toUpperCase() });
+      toast.success("Department created successfully!");
+      setNewDeptName("");
+      setNewDeptCode("");
+      loadDepartments();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to create department");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
-  const handleToggleStatus = (id: string) => {
-    setDepartments(
-      departments.map((d) => (d.id === id ? { ...d, is_active: !d.is_active } : d))
-    );
-    toast.success("Department status updated");
+  const handleToggleStatus = async (dept: Department) => {
+    try {
+      await departmentsApi.update(dept.id, { is_active: !dept.is_active });
+      toast.success(`Department ${dept.is_active ? "deactivated" : "activated"}`);
+      loadDepartments();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update department");
+    }
   };
 
   const filtered = departments.filter(
@@ -66,39 +81,39 @@ export default function DepartmentsPage() {
       />
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-        
-        {/* Left Form: Add department */}
+
+        {/* Left Form */}
         <div className="xl:col-span-1">
           <SectionCard title="Create Department">
             <form onSubmit={handleAdd} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="deptName" className="text-xs">Department Name</Label>
+                <Label htmlFor="deptName">Department Name</Label>
                 <Input
                   id="deptName"
                   placeholder="e.g. Electrical Engineering"
                   value={newDeptName}
                   onChange={(e) => setNewDeptName(e.target.value)}
+                  disabled={submitting}
                 />
               </div>
-
               <div className="space-y-1.5">
-                <Label htmlFor="deptCode" className="text-xs">Department Code</Label>
+                <Label htmlFor="deptCode">Department Code</Label>
                 <Input
                   id="deptCode"
                   placeholder="e.g. ECE"
                   value={newDeptCode}
                   onChange={(e) => setNewDeptCode(e.target.value)}
                   className="font-mono"
+                  disabled={submitting}
                 />
               </div>
-
-              <Button type="submit" className="w-full btn-brand gap-2 text-xs font-semibold">
-                <Plus className="w-4 h-4" /> Add Department
+              <Button type="submit" className="w-full btn-brand gap-2 text-xs font-semibold" disabled={submitting}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+                {submitting ? "Creating..." : "Add Department"}
               </Button>
             </form>
           </SectionCard>
 
-          {/* Quick Stats Panel */}
           <SectionCard title="Department Insights" className="mt-4">
             <div className="space-y-3 text-xs">
               <div className="flex justify-between items-center">
@@ -111,15 +126,11 @@ export default function DepartmentsPage() {
                   {departments.filter((d) => d.is_active).length}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-muted-foreground">Standardized Codes</span>
-                <span className="font-bold font-mono">ISO-3166 Grade</span>
-              </div>
             </div>
           </SectionCard>
         </div>
 
-        {/* Right Grid: Department list */}
+        {/* Right Grid */}
         <div className="xl:col-span-2 space-y-4">
           <div className="relative max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -131,82 +142,89 @@ export default function DepartmentsPage() {
             />
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {filtered.map((dept, i) => (
-              <motion.div
-                key={dept.id}
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: i * 0.04 }}
-                className={`border rounded-2xl bg-card p-5 hover:shadow-card-hover transition-all flex flex-col justify-between ${
-                  !dept.is_active && "opacity-60 bg-muted/20"
-                }`}
-              >
-                <div>
-                  <div className="flex justify-between items-start mb-3">
-                    <Badge variant="outline" className="font-mono text-xs">
-                      {dept.code}
-                    </Badge>
-                    <Badge
-                      variant={dept.is_active ? "default" : "secondary"}
-                      className={`text-[10px] cursor-pointer ${
-                        dept.is_active
-                          ? "bg-success/15 text-success hover:bg-success/20 border-success/30"
-                          : ""
-                      }`}
-                      onClick={() => handleToggleStatus(dept.id)}
-                    >
-                      {dept.is_active ? "Active" : "Inactive"}
-                    </Badge>
-                  </div>
-                  <Link href={`/admin/teachers?department=${dept.id}`}>
-                    <h3 className="text-sm font-semibold tracking-tight text-balance mb-1 leading-tight hover:text-primary transition-colors cursor-pointer">
+          {loading ? (
+            <div className="flex items-center justify-center py-20 text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin mr-2" />
+              Loading departments...
+            </div>
+          ) : filtered.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-20 text-muted-foreground gap-2">
+              <GraduationCap className="w-10 h-10 opacity-30" />
+              <p className="text-sm">No departments yet. Create one to get started.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {filtered.map((dept, i) => (
+                <motion.div
+                  key={dept.id}
+                  initial={{ opacity: 0, scale: 0.96 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: i * 0.04 }}
+                  className={`border rounded-2xl bg-card p-5 hover:shadow-card-hover transition-all flex flex-col justify-between ${
+                    !dept.is_active && "opacity-60 bg-muted/20"
+                  }`}
+                >
+                  <div>
+                    <div className="flex justify-between items-start mb-3">
+                      <Badge variant="outline" className="font-mono text-xs">{dept.code}</Badge>
+                      <Badge
+                        variant={dept.is_active ? "default" : "secondary"}
+                        className={`text-[10px] cursor-pointer ${
+                          dept.is_active
+                            ? "bg-success/15 text-success hover:bg-success/20 border-success/30"
+                            : ""
+                        }`}
+                        onClick={() => handleToggleStatus(dept)}
+                      >
+                        {dept.is_active ? "Active" : "Inactive"}
+                      </Badge>
+                    </div>
+
+                    <h3 className="text-sm font-semibold tracking-tight mb-1 leading-tight">
                       {dept.name}
                     </h3>
-                  </Link>
 
-                  <div className="flex gap-3 text-[11px] mt-1.5 text-muted-foreground font-medium">
-                    <Link
-                      href={`/admin/students?department=${dept.id}`}
-                      className="flex items-center gap-1 hover:text-primary hover:underline transition-all"
-                    >
-                      <GraduationCap className="w-3.5 h-3.5" />
-                      <span>{dept.student_count ?? 0} Students</span>
-                    </Link>
+                    <div className="flex gap-3 text-[11px] mt-1.5 text-muted-foreground font-medium">
+                      <span className="flex items-center gap-1">
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        {dept.student_count ?? 0} Students
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Users className="w-3.5 h-3.5" />
+                        {dept.teacher_count ?? 0} Teachers
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-between items-center border-t pt-3 mt-4 text-xs text-muted-foreground">
                     <Link
                       href={`/admin/teachers?department=${dept.id}`}
-                      className="flex items-center gap-1 hover:text-primary hover:underline transition-all"
+                      className="text-xs text-primary hover:text-primary/80 hover:underline font-semibold transition-all"
                     >
-                      <Users className="w-3.5 h-3.5" />
-                      <span>{dept.teacher_count ?? 0} Teachers</span>
+                      View Teachers →
                     </Link>
-                  </div>
-                </div>
-
-                <div className="flex justify-between items-center border-t pt-3 mt-4 text-xs text-muted-foreground">
-                  <Link
-                    href={`/admin/teachers?department=${dept.id}`}
-                    className="text-xs text-primary hover:text-primary/80 hover:underline font-semibold transition-all"
-                  >
-                    View Teachers →
-                  </Link>
-                  <div className="flex items-center gap-1">
-                    <Button variant="ghost" size="icon" className="h-7 w-7">
-                      <Edit3 className="w-3.5 h-3.5" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${dept.is_active ? "text-destructive hover:text-destructive" : "text-success hover:text-success"}`}
+                      title={dept.is_active ? "Deactivate" : "Activate"}
+                      onClick={() => handleToggleStatus(dept)}
+                    >
+                      {dept.is_active
+                        ? <XCircle className="w-3.5 h-3.5" />
+                        : <CheckCircle2 className="w-3.5 h-3.5" />}
                     </Button>
                   </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                </motion.div>
+              ))}
+            </div>
+          )}
         </div>
-
       </div>
     </DashboardLayout>
   );
 }
 
-// Inline Label for quick form creation helper
 function Label({ className, children, ...props }: any) {
   return (
     <label className={`text-xs font-semibold text-muted-foreground ${className}`} {...props}>

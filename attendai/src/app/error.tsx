@@ -56,9 +56,9 @@ export default function ErrorBoundary({
           <Button onClick={() => reset()} className="w-full gap-2 shadow-danger-sm">
             <RefreshCw className="w-4 h-4" /> Try reloading page
           </Button>
-          <a href="mailto:support@attendai.app" className="w-full">
+          <a href="mailto:support@IntelliPresence.app" className="w-full">
             <Button variant="ghost" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-              Contact AttendAI Support <ChevronRight className="w-3.5 h-3.5" />
+              Contact IntelliPresence Support <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </a>
         </motion.div>
@@ -66,7 +66,7 @@ export default function ErrorBoundary({
 
       {/* Footer */}
       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-[11px] text-muted-foreground/80 z-10">
-        <span>© 2026 AttendAI Corp.</span>
+        <span>© 2026 IntelliPresence Corp.</span>
         <span>Ref: {error.digest ?? "SYS_ERR_GATEWAY"}</span>
       </div>
     </div>

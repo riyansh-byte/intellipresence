@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist, subscribeWithSelector } from "zustand/middleware";
 import type { AuthUser, UserRole } from "@/types";
+import { supabase } from "@/lib/supabase/client";
+import { authApi, invitationsApi } from "@/lib/api";
 
 // ─────────────────────────────────────────
 // Auth Store
@@ -13,6 +15,8 @@ interface AuthState {
   setUser: (user: AuthUser | null) => void;
   setLoading: (loading: boolean) => void;
   logout: () => void;
+  hydrateFromSupabase: () => Promise<void>;
+  syncProfile: (session?: any) => Promise<AuthUser>;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -23,10 +27,96 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       setUser: (user) => set({ user, isAuthenticated: !!user, isLoading: false }),
       setLoading: (isLoading) => set({ isLoading }),
-      logout: () => set({ user: null, isAuthenticated: false }),
+      logout: async () => {
+        await supabase.auth.signOut();
+        set({ user: null, isAuthenticated: false, isLoading: false });
+      },
+      hydrateFromSupabase: async () => {
+        set({ isLoading: true });
+
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.user) {
+          set({ user: null, isAuthenticated: false, isLoading: false });
+          return;
+        }
+
+        try {
+          const result = await authApi.me();
+          const profile = result.data.profile;
+          const organization = result.data.organization;
+
+          const authUser: AuthUser = {
+            id: profile.id,
+            email: profile.email,
+            full_name: profile.full_name,
+            role: profile.role,
+            organization_id: profile.organization_id,
+            organization: {
+              id: organization.id,
+              name: organization.name,
+              slug: organization.domain,
+              logo_url: "",
+              plan: "starter",
+            },
+          };
+
+          set({ user: authUser, isAuthenticated: true, isLoading: false });
+        } catch (err: any) {
+          const errMsg = err?.message || "";
+          if (errMsg.includes("profile was not found")) {
+            console.warn("User has no database profile yet (onboarding expected):", errMsg);
+          } else {
+            console.error("Hydration failed to fetch profile from database:", err);
+          }
+          set({ user: null, isAuthenticated: false, isLoading: false });
+        }
+      },
+      syncProfile: async (providedSession?: any) => {
+        set({ isLoading: true });
+        let session = providedSession;
+        if (!session) {
+          const { data } = await supabase.auth.getSession();
+          session = data.session;
+        }
+        if (!session) {
+          set({ isLoading: false });
+          throw new Error("No active session found");
+        }
+
+        let profileData;
+        try {
+          // Try to fetch profile from backend /auth/me
+          const result = await authApi.me();
+          profileData = result.data;
+        } catch (err) {
+          set({ isLoading: false });
+          throw err;
+        }
+
+        const profile = profileData.profile;
+        const organization = profileData.organization;
+
+        const authUser: AuthUser = {
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          role: profile.role,
+          organization_id: profile.organization_id,
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            slug: organization.domain,
+            logo_url: "",
+            plan: "starter",
+          },
+        };
+
+        set({ user: authUser, isAuthenticated: true, isLoading: false });
+        return authUser;
+      },
     }),
     {
-      name: "attendai-auth",
+      name: "IntelliPresence-auth",
       partialize: (state) => ({ user: state.user }),
     }
   )
@@ -58,7 +148,7 @@ export const useUIStore = create<UIState>()(
       setMobileMenuOpen: (mobileMenuOpen) => set({ mobileMenuOpen }),
     }),
     {
-      name: "attendai-ui",
+      name: "IntelliPresence-ui",
       partialize: (state) => ({ sidebarCollapsed: state.sidebarCollapsed }),
     }
   )

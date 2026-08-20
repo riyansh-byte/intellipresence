@@ -1,5 +1,5 @@
 /* ============================================================
-   AttendAI — Global Design System
+   IntelliPresence — Global Design System
    Tailwind CSS v4 compatible
    ============================================================ */
 
@@ -41,17 +41,17 @@
   --color-info: hsl(var(--info));
 
   /* Brand tokens */
-  --color-brand-50: hsl(243 100% 97%);
-  --color-brand-100: hsl(243 100% 93%);
-  --color-brand-200: hsl(243 85% 85%);
-  --color-brand-300: hsl(243 80% 78%);
-  --color-brand-400: hsl(243 78% 68%);
+  --color-brand-50: hsl(150 100% 97%);
+  --color-brand-100: hsl(150 90% 93%);
+  --color-brand-200: hsl(150 85% 85%);
+  --color-brand-300: hsl(150 80% 78%);
+  --color-brand-400: hsl(150 78% 68%);
   --color-brand-500: hsl(var(--primary));
-  --color-brand-600: hsl(243 70% 52%);
-  --color-brand-700: hsl(243 65% 44%);
-  --color-brand-800: hsl(243 60% 36%);
-  --color-brand-900: hsl(243 55% 28%);
-  --color-brand-950: hsl(243 50% 16%);
+  --color-brand-600: hsl(150 72% 44%);
+  --color-brand-700: hsl(150 68% 36%);
+  --color-brand-800: hsl(150 63% 30%);
+  --color-brand-900: hsl(150 58% 24%);
+  --color-brand-950: hsl(150 52% 16%);
 
   /* Sidebar tokens */
   --color-sidebar: hsl(var(--sidebar-background));
@@ -81,8 +81,8 @@
 /* ── CSS Custom Properties (light / dark) ── */
 :root {
   /* Brand */
-  --brand-primary: 243 75% 59%;
-  --brand-accent: 270 91% 65%;
+  --brand-primary: 150 70% 42%;
+  --brand-accent: 168 78% 44%;
 
   /* Base colours (HSL triplets — used via hsl(var(--x))) */
   --background: 0 0% 99%;
@@ -91,19 +91,19 @@
   --card-foreground: 224 71% 4%;
   --popover: 0 0% 100%;
   --popover-foreground: 224 71% 4%;
-  --primary: 243 75% 59%;
+  --primary: 150 70% 42%;
   --primary-foreground: 0 0% 100%;
   --secondary: 220 14% 96%;
   --secondary-foreground: 224 71% 4%;
   --muted: 220 14% 96%;
   --muted-foreground: 220 9% 46%;
-  --accent: 243 100% 97%;
-  --accent-foreground: 243 75% 40%;
+  --accent: 150 100% 97%;
+  --accent-foreground: 150 70% 26%;
   --destructive: 347 77% 50%;
   --destructive-foreground: 0 0% 100%;
   --border: 220 13% 91%;
   --input: 220 13% 91%;
-  --ring: 243 75% 59%;
+  --ring: 150 70% 42%;
 
   /* Semantic */
   --success: 160 84% 39%;
@@ -125,8 +125,8 @@
   --sidebar-border: 220 13% 91%;
 
   /* Charts */
-  --chart-1: 243 75% 59%;
-  --chart-2: 270 91% 65%;
+  --chart-1: 150 70% 42%;
+  --chart-2: 168 78% 44%;
   --chart-3: 160 84% 39%;
   --chart-4: 38 92% 50%;
   --chart-5: 347 77% 50%;
@@ -139,19 +139,19 @@
   --card-foreground: 213 31% 91%;
   --popover: 224 71% 6%;
   --popover-foreground: 213 31% 91%;
-  --primary: 243 75% 65%;
+  --primary: 150 65% 48%;
   --primary-foreground: 224 71% 4%;
   --secondary: 222 47% 11%;
   --secondary-foreground: 213 31% 91%;
   --muted: 222 47% 11%;
   --muted-foreground: 215 16% 57%;
-  --accent: 222 47% 14%;
-  --accent-foreground: 243 75% 75%;
+  --accent: 150 35% 15%;
+  --accent-foreground: 150 75% 75%;
   --destructive: 347 77% 60%;
   --destructive-foreground: 224 71% 4%;
   --border: 216 34% 17%;
   --input: 216 34% 17%;
-  --ring: 243 75% 65%;
+  --ring: 150 65% 48%;
   --success: 160 84% 45%;
   --success-muted: 160 60% 10%;
   --warning: 38 92% 55%;
@@ -162,8 +162,8 @@
   --info-muted: 207 90% 10%;
   --sidebar-background: 224 71% 5%;
   --sidebar-border: 216 34% 17%;
-  --chart-1: 243 75% 65%;
-  --chart-2: 270 91% 72%;
+  --chart-1: 150 65% 48%;
+  --chart-2: 168 78% 52%;
   --chart-3: 160 84% 45%;
   --chart-4: 38 92% 55%;
   --chart-5: 347 77% 60%;
@@ -230,7 +230,7 @@
 @layer components {
   /* Gradient text */
   .gradient-text {
-    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(270 91% 65%) 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(168 78% 44%) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -238,10 +238,10 @@
 
   /* Background gradients */
   .gradient-brand {
-    background: linear-gradient(135deg, hsl(243, 75%, 59%) 0%, hsl(270, 91%, 65%) 100%);
+    background: linear-gradient(135deg, hsl(150, 70%, 42%) 0%, hsl(168, 78%, 44%) 100%);
   }
   .bg-gradient-brand {
-    background: linear-gradient(135deg, hsl(243, 75%, 59%) 0%, hsl(270, 91%, 65%) 100%);
+    background: linear-gradient(135deg, hsl(150, 70%, 42%) 0%, hsl(168, 78%, 44%) 100%);
   }
 
   /* Glass card */
@@ -276,12 +276,12 @@
 
   /* Stat card variants (pastel fills) */
   .stat-card-primary {
-    background: linear-gradient(135deg, hsl(243 100% 97%) 0%, hsl(243 100% 93%) 100%);
-    border-color: hsl(243 75% 59% / 0.15);
+    background: linear-gradient(135deg, hsl(150 100% 97%) 0%, hsl(150 90% 93%) 100%);
+    border-color: hsl(150 70% 42% / 0.15);
   }
   .dark .stat-card-primary {
-    background: linear-gradient(135deg, hsl(243 75% 59% / 0.15) 0%, hsl(243 75% 59% / 0.08) 100%);
-    border-color: hsl(243 75% 59% / 0.2);
+    background: linear-gradient(135deg, hsl(150 70% 42% / 0.15) 0%, hsl(150 70% 42% / 0.08) 100%);
+    border-color: hsl(150 70% 42% / 0.2);
   }
   .stat-card-success {
     background: linear-gradient(135deg, hsl(160 84% 95%) 0%, hsl(160 84% 90%) 100%);
@@ -364,7 +364,7 @@
 
   /* Brand gradient button */
   .btn-brand {
-    background: linear-gradient(135deg, hsl(243, 75%, 59%) 0%, hsl(270, 91%, 65%) 100%);
+    background: linear-gradient(135deg, hsl(var(--brand-primary)) 0%, hsl(var(--brand-accent)) 100%);
     color: white;
     font-weight: 500;
     border-radius: 0.5rem;

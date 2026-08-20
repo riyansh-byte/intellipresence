@@ -4,7 +4,8 @@ import { ThemeProvider } from "next-themes";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useAuthStore } from "@/store";
 
 if (typeof window !== "undefined" && process.env.NODE_ENV === "development") {
   const origError = console.error;
@@ -28,6 +29,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
         },
       })
   );
+  const hydrateFromSupabase = useAuthStore((state) => state.hydrateFromSupabase);
+
+  useEffect(() => {
+    void hydrateFromSupabase();
+  }, [hydrateFromSupabase]);
 
   return (
     <ThemeProvider
@@ -37,7 +43,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
       disableTransitionOnChange
     >
       <QueryClientProvider client={queryClient}>
-        <TooltipProvider delayDuration={0}>
+        <TooltipProvider delay={0}>
           {children}
           <Toaster richColors position="top-right" />
         </TooltipProvider>

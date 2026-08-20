@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from "@/components/ui/table";
@@ -12,10 +13,12 @@ import { AttendancePctBadge } from "@/components/ui/attendance-badge";
 import { mockStudents } from "@/lib/mock-data";
 import { motion } from "framer-motion";
 import { useState, useMemo } from "react";
-import { Search, GraduationCap } from "lucide-react";
+import { Search, GraduationCap, Plus } from "lucide-react";
+import { InviteStudentModal } from "@/components/InviteStudentModal";
 
 export default function TeacherStudentsPage() {
   const [search, setSearch] = useState("");
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
 
   const filtered = useMemo(() => {
     return mockStudents.filter((s) => {
@@ -35,6 +38,12 @@ export default function TeacherStudentsPage() {
       <PageHeader
         title="My Students"
         description="Directory list of students registered under your active teaching courses"
+        actions={
+          <Button size="sm" className="btn-brand gap-1.5" onClick={() => setIsInviteModalOpen(true)}>
+            <Plus className="w-4 h-4" />
+            Invite Student
+          </Button>
+        }
       />
 
       <div className="relative max-w-sm mb-5">
@@ -119,6 +128,10 @@ export default function TeacherStudentsPage() {
           <span>Showing {filtered.length} students</span>
         </div>
       </motion.div>
+      <InviteStudentModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }

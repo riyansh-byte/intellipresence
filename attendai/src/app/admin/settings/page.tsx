@@ -22,7 +22,7 @@ export default function SettingsPage() {
   const [orgName, setOrgName] = useState("Apex Institute of Technology");
   const [orgDomain, setOrgDomain] = useState("apex-tech");
   const [n8nUrl, setN8nUrl] = useState("https://n8n.workflow.myorg.com/webhook/attendance");
-  const [s3Bucket, setS3Bucket] = useState("attendai-reports-storage");
+  const [s3Bucket, setS3Bucket] = useState("IntelliPresence-reports-storage");
 
   // Feature Toggles
   const [enableFace, setEnableFace] = useState(false);
@@ -82,7 +82,7 @@ export default function SettingsPage() {
                     <Label htmlFor="orgDomain">Workspace Subdomain URL</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground font-mono">
-                        attendai.com/
+                        IntelliPresence.com/
                       </span>
                       <Input
                         id="orgDomain"
@@ -184,7 +184,7 @@ export default function SettingsPage() {
               <SectionCard title="Subscription Details">
                 <div className="flex justify-between items-center bg-brand-50/40 dark:bg-brand-950/15 border border-brand-200/50 p-4 rounded-xl mb-4">
                   <div>
-                    <h3 className="text-sm font-semibold">AttendAI Pro Plan</h3>
+                    <h3 className="text-sm font-semibold">IntelliPresence Pro Plan</h3>
                     <p className="text-xs text-muted-foreground mt-0.5">
                       Enables up to 2,000 active students and unlimited teachers.
                     </p>

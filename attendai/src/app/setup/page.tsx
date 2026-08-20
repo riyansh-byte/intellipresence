@@ -1,35 +1,62 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase/client";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
-  Shield, Loader2, ArrowRight, ArrowLeft, Plus, Trash2, Mail,
-  BookOpen, Users, CheckCircle2,
+  Shield, Loader2, ArrowRight, ArrowLeft, Plus, Trash2,
+  CheckCircle2, Building2, Users,
 } from "lucide-react";
 import { toast } from "sonner";
+import { useAuthStore } from "@/store";
+import { authApi } from "@/lib/api";
 
 interface DepartmentPreset {
   name: string;
   code: string;
 }
 
-interface TeacherInvite {
-  email: string;
-  name: string;
-  departmentCode: string;
-}
-
 export default function SetupWizardPage() {
   const router = useRouter();
+  const { setUser } = useAuthStore();
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [orgName, setOrgName] = useState("");
 
-  // Step 1: Departments State
+  // Guard: redirect to login if no active Supabase session
+  // Also guard against teachers/students who land here by mistake
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (!data.session) {
+        router.push("/login");
+      } else {
+        const metadata = data.session.user?.user_metadata;
+        if (metadata?.role === "teacher" || metadata?.role === "student") {
+          router.replace("/auth/callback");
+          return;
+        }
+        if (metadata?.organization_name) {
+          setOrgName(metadata.organization_name);
+        }
+      }
+    });
+  }, [router]);
+
+  // If the user is already authenticated with a known role, redirect them away from setup
+  const { user } = useAuthStore();
+  useEffect(() => {
+    if (user?.role === "teacher") {
+      router.replace("/teacher");
+    } else if (user?.role === "student") {
+      router.replace("/student");
+    }
+  }, [user, router]);
+
+
   const [departments, setDepartments] = useState<DepartmentPreset[]>([
     { name: "Computer Science & Engineering", code: "CSE" },
     { name: "Electronics & Communication", code: "ECE" },
@@ -38,18 +65,6 @@ export default function SetupWizardPage() {
   const [newDeptName, setNewDeptName] = useState("");
   const [newDeptCode, setNewDeptCode] = useState("");
 
-  // Step 2: Teachers State
-  const [teachers, setTeachers] = useState<TeacherInvite[]>([
-    { email: "krishnan@attendai.com", name: "Prof. Anand Krishnan", departmentCode: "CSE" },
-    { email: "iyer@attendai.com", name: "Dr. Ramesh Iyer", departmentCode: "ECE" },
-  ]);
-  const [newTeacherName, setNewTeacherName] = useState("");
-  const [newTeacherEmail, setNewTeacherEmail] = useState("");
-  const [newTeacherDept, setNewTeacherDept] = useState("CSE");
-
-
-
-  // Handlers
   const addDepartment = () => {
     if (!newDeptName || !newDeptCode) {
       toast.error("Please enter department name and code");
@@ -69,64 +84,72 @@ export default function SetupWizardPage() {
     setDepartments(departments.filter((d) => d.code !== code));
   };
 
-  const addTeacher = () => {
-    if (!newTeacherName || !newTeacherEmail) {
-      toast.error("Please enter teacher name and email");
-      return;
-    }
-    if (teachers.some((t) => t.email.toLowerCase() === newTeacherEmail.toLowerCase())) {
-      toast.error("This teacher email is already invited");
-      return;
-    }
-    setTeachers([
-      ...teachers,
-      { name: newTeacherName, email: newTeacherEmail, departmentCode: newTeacherDept },
-    ]);
-    setNewTeacherName("");
-    setNewTeacherEmail("");
-    toast.success("Teacher invitation added");
-  };
-
-  const removeTeacher = (email: string) => {
-    setTeachers(teachers.filter((t) => t.email !== email));
-  };
-
   const handleCompleteSetup = async () => {
+    if (!orgName.trim()) {
+      toast.error("Please enter your organization name");
+      setStep(1);
+      return;
+    }
+
     setIsLoading(true);
-    // Simulate multi-step onboarding submission
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    setIsLoading(false);
-    toast.success("Organization onboarding complete!");
-    router.push("/admin");
+    try {
+      const result = await authApi.completeSetup({
+        organization_name: orgName,
+        departments: departments,
+      });
+
+      const profile = result.data.profile;
+      const organization = result.data.organization;
+
+      setUser({
+        id: profile.id,
+        email: profile.email,
+        full_name: profile.full_name,
+        role: profile.role,
+        organization_id: profile.organization_id,
+        organization: {
+          id: organization.id,
+          name: organization.name,
+          slug: organization.domain,
+          logo_url: "",
+          plan: "starter" as const,
+        },
+      });
+
+      toast.success("Organization setup complete!");
+      router.push("/admin");
+    } catch (error: unknown) {
+      console.error("Setup failed:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to complete setup. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen bg-muted/20 flex flex-col justify-between font-sans">
-      
-      {/* Header bar */}
+
       <header className="h-16 border-b bg-card flex items-center px-6 sm:px-12 justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center">
             <Shield className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-bold gradient-text">AttendAI Onboarding</span>
+          <span className="text-sm font-bold gradient-text">IntelliPresence Onboarding</span>
         </div>
         <div className="flex items-center gap-4 text-xs font-medium text-muted-foreground">
-          <span>Step {step} of 3</span>
+          <span>Step {step} of 2</span>
           <div className="w-24 bg-muted h-1.5 rounded-full overflow-hidden">
             <div
               className="bg-brand-500 h-1.5 rounded-full transition-all duration-300"
-              style={{ width: `${(step / 3) * 100}%` }}
+              style={{ width: `${(step / 2) * 100}%` }}
             />
           </div>
         </div>
       </header>
 
-      {/* Main Container */}
       <main className="max-w-2xl w-full mx-auto p-6 py-12 flex-1 flex flex-col justify-center">
         <AnimatePresence mode="wait">
-          
-          {/* Step 1: Department settings */}
+
           {step === 1 && (
             <motion.div
               key="step1"
@@ -137,17 +160,26 @@ export default function SetupWizardPage() {
             >
               <div>
                 <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-brand-500" />
-                  Define Academic Departments
+                  <Building2 className="w-5 h-5 text-brand-500" />
+                  Your Organization
                 </h1>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Create departments to categorize students and classes. You can add or modify these later.
+                  Set up your organization and departments. You can invite teachers from the admin dashboard after setup.
                 </p>
               </div>
 
-              {/* Added Departments list */}
               <div className="space-y-2">
-                <Label className="text-xs font-semibold">Active Departments</Label>
+                <Label className="text-xs font-semibold">Organization Name</Label>
+                <Input
+                  placeholder="e.g. University of Excellence"
+                  value={orgName}
+                  onChange={(e) => setOrgName(e.target.value)}
+                  className="h-10 text-sm"
+                />
+              </div>
+
+              <div className="space-y-2 pt-4 border-t">
+                <Label className="text-xs font-semibold">Departments</Label>
                 <div className="flex flex-col gap-2">
                   {departments.map((dept) => (
                     <div
@@ -172,9 +204,8 @@ export default function SetupWizardPage() {
                 </div>
               </div>
 
-              {/* Add Department Form Inline */}
               <div className="border-t pt-4">
-                <Label className="text-xs font-semibold mb-2 block">Add New Department</Label>
+                <Label className="text-xs font-semibold mb-2 block">Add Department</Label>
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
                   <div className="col-span-2 space-y-1">
                     <Input
@@ -202,118 +233,18 @@ export default function SetupWizardPage() {
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t">
-                <span className="text-xs text-muted-foreground">Setup departments before adding students.</span>
+                <span className="text-xs text-muted-foreground">Teachers are invited later from Admin → Teachers.</span>
                 <Button onClick={() => setStep(2)} className="btn-brand gap-2 text-xs font-semibold">
-                  Continue to Teachers
+                  Review & Finish
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </div>
             </motion.div>
           )}
 
-          {/* Step 2: Invite teachers */}
           {step === 2 && (
             <motion.div
               key="step2"
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -12 }}
-              className="border bg-card p-6 sm:p-8 rounded-2xl shadow-xl space-y-6"
-            >
-              <div>
-                <h1 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                  <Users className="w-5 h-5 text-brand-500" />
-                  Invite Teaching Staff
-                </h1>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Invite your lecturers or staff to manage class attendance and leave requests.
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold">Invited Teachers</Label>
-                <div className="flex flex-col gap-2 max-h-48 overflow-y-auto pr-1">
-                  {teachers.map((teacher) => (
-                    <div
-                      key={teacher.email}
-                      className="flex items-center justify-between p-3 border rounded-xl bg-muted/20 text-xs"
-                    >
-                      <div>
-                        <p className="font-semibold">{teacher.name}</p>
-                        <p className="text-muted-foreground">{teacher.email}</p>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="text-[10px]">
-                          {teacher.departmentCode}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => removeTeacher(teacher.email)}
-                          className="h-8 w-8 text-danger hover:text-danger hover:bg-danger/10"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Invite Teacher Form */}
-              <div className="border-t pt-4 space-y-3">
-                <Label className="text-xs font-semibold">Invite a Teacher</Label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                  <Input
-                    placeholder="Full Name"
-                    value={newTeacherName}
-                    onChange={(e) => setNewTeacherName(e.target.value)}
-                    className="h-10 text-xs"
-                  />
-                  <Input
-                    placeholder="Email address"
-                    value={newTeacherEmail}
-                    onChange={(e) => setNewTeacherEmail(e.target.value)}
-                    className="h-10 text-xs"
-                  />
-                  <div className="flex gap-2">
-                    <select
-                      value={newTeacherDept}
-                      onChange={(e) => setNewTeacherDept(e.target.value)}
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-xs focus:ring-2 focus:ring-ring"
-                    >
-                      {departments.map((d) => (
-                        <option key={d.code} value={d.code}>
-                          {d.code}
-                        </option>
-                      ))}
-                    </select>
-                    <Button
-                      onClick={addTeacher}
-                      className="h-10 text-xs font-semibold flex items-center gap-1 shrink-0"
-                    >
-                      <Plus className="w-4 h-4" /> Invite
-                    </Button>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex justify-between items-center pt-4 border-t">
-                <Button variant="ghost" onClick={() => setStep(1)} className="gap-2 text-xs font-semibold">
-                  <ArrowLeft className="w-4 h-4" /> Back
-                </Button>
-                <Button onClick={() => setStep(3)} className="btn-brand gap-2 text-xs font-semibold">
-                  Continue to Summary
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </motion.div>
-          )}
-
-          {/* Step 3: Onboarding Summary & Finish */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -12 }}
@@ -324,25 +255,35 @@ export default function SetupWizardPage() {
               </div>
 
               <div>
-                <h1 className="text-2xl font-bold tracking-tight">Onboarding Configuration Ready!</h1>
+                <h1 className="text-2xl font-bold tracking-tight">Ready to launch</h1>
                 <p className="text-xs text-muted-foreground mt-1.5 max-w-sm mx-auto">
-                  You're all set. We're ready to deploy your workspace database schemas, departments, and teachers.
+                  Your workspace will be created with the organization and departments below.
+                  Invite teachers from the admin dashboard once you&apos;re in.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4 border rounded-xl p-4 bg-muted/20 text-left text-xs">
+              <div className="border rounded-xl p-4 bg-muted/20 text-left text-xs space-y-3">
+                <div>
+                  <p className="text-muted-foreground">Organization</p>
+                  <p className="font-bold text-sm">{orgName || "—"}</p>
+                </div>
                 <div>
                   <p className="text-muted-foreground">Departments</p>
                   <p className="font-bold text-lg">{departments.length}</p>
+                  <ul className="mt-1 space-y-0.5 text-muted-foreground">
+                    {departments.map((d) => (
+                      <li key={d.code}>{d.name} ({d.code})</li>
+                    ))}
+                  </ul>
                 </div>
-                <div>
-                  <p className="text-muted-foreground">Staff Invited</p>
-                  <p className="font-bold text-lg">{teachers.length}</p>
+                <div className="flex items-start gap-2 pt-2 border-t text-muted-foreground">
+                  <Users className="w-4 h-4 shrink-0 mt-0.5" />
+                  <p>After setup, go to <span className="font-semibold text-foreground">Admin → Teachers → Invite</span> to add staff.</p>
                 </div>
               </div>
 
               <div className="flex justify-between items-center pt-4 border-t">
-                <Button variant="ghost" onClick={() => setStep(2)} className="gap-2 text-xs font-semibold" disabled={isLoading}>
+                <Button variant="ghost" onClick={() => setStep(1)} className="gap-2 text-xs font-semibold" disabled={isLoading}>
                   <ArrowLeft className="w-4 h-4" /> Back
                 </Button>
                 <Button
@@ -353,7 +294,7 @@ export default function SetupWizardPage() {
                   {isLoading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Deploying infrastructure...
+                      Creating workspace...
                     </>
                   ) : (
                     <>
@@ -369,9 +310,8 @@ export default function SetupWizardPage() {
         </AnimatePresence>
       </main>
 
-      {/* Footer bar */}
       <footer className="h-12 border-t bg-card/60 flex items-center justify-center text-[10px] text-muted-foreground">
-        © 2026 AttendAI Platform Inc. · Built for high availability.
+        © 2026 IntelliPresence Platform Inc.
       </footer>
     </div>
   );

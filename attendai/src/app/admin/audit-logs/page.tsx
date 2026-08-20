@@ -152,7 +152,7 @@ export default function AuditLogsPage() {
                           : log.type === "AUTH"
                           ? "bg-info/10 text-info border-info/30"
                           : log.type === "EXPORT"
-                          ? "bg-violet-500/10 text-violet-500 border-violet-500/30"
+                          ? "bg-emerald-500/10 text-emerald-600 border-emerald-500/30"
                           : "bg-warning/10 text-warning border-warning/30"
                       }`}
                     >

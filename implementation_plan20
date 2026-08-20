@@ -1,0 +1,413 @@
+# AttendAI — Production SaaS Implementation Plan
+
+## Overview
+
+**AttendAI** is an AI-powered Smart Attendance & Workforce Intelligence Platform targeting EdTech / HRTech SaaS verticals. This plan covers the complete frontend + backend architecture, database schema, API design, design system, and phased delivery roadmap.
+
+Design inspiration: clean education dashboard aesthetic (pastel soft cards, left icon sidebar, stats widgets, activity charts) elevated to enterprise SaaS grade (Linear/Vercel/Stripe polish, dark + light mode, command palette).
+
+---
+
+## User Review Required
+
+> [!IMPORTANT]
+> **Phase Scope**: This plan delivers the **complete frontend** (all pages, design system, components) and the **complete backend architecture** (Flask, Supabase schema, API contracts, S3 integration points). Facial recognition is explicitly excluded but architecture extension points are included.
+
+> [!WARNING]
+> **AWS S3**: Real S3 uploads require AWS credentials. The implementation will include the full upload architecture (presigned URLs, metadata storage in Supabase) but environment variables must be configured by the user before S3 actually works.
+
+> [!WARNING]
+> **Supabase**: You will need a Supabase project URL and anon key. The schema SQL will be generated and can be run in the Supabase SQL editor.
+
+---
+
+## Open Questions
+
+> [!IMPORTANT]
+> Do you want me to use **mock/demo data** for all charts and tables (so the app runs fully without backend), or wire everything to live API calls from the start?
+
+> [!NOTE]
+> I will proceed with **mock data + full API architecture** — the frontend will work standalone with realistic demo data, and every API call will be abstracted behind a service layer so real endpoints can be swapped in later.
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend Framework | Next.js 14 App Router + TypeScript |
+| Styling | TailwindCSS + shadcn/ui |
+| Animation | Framer Motion |
+| Forms | React Hook Form + Zod |
+| Server State | TanStack Query |
+| Client State | Zustand |
+| Tables | TanStack Table |
+| Charts | Recharts |
+| Icons | Lucide Icons |
+| Auth | Supabase Auth |
+| Database | Supabase PostgreSQL + RLS |
+| Backend | Python Flask (modular) |
+| Storage | AWS S3 (presigned URLs) |
+| Workflows | n8n (webhook architecture) |
+| Theme | Dark + Light (next-themes) |
+
+---
+
+## Proposed Changes
+
+### Phase 1 — Project Bootstrap & Design System
+
+#### [NEW] Next.js Project (`d:/attendence/`)
+Initialize with `create-next-app` using App Router, TypeScript, TailwindCSS.
+
+#### [NEW] `src/styles/globals.css`
+Full CSS custom property design token system:
+- HSL color palette (brand indigo-violet, semantic colors)
+- Typography scale
+- Spacing / radius tokens
+- Dark mode variables
+
+#### [NEW] `src/lib/design-system.ts`
+Centralized design constants for programmatic use.
+
+#### [NEW] `tailwind.config.ts`
+Extended Tailwind config with custom tokens, animations, and typography.
+
+---
+
+### Phase 2 — shadcn/ui Component Installation
+
+Install and configure:
+- button, input, form, label, select, checkbox, switch
+- dialog, sheet, drawer, dropdown-menu, command
+- table, pagination, tabs, accordion
+- card, badge, alert, toast (sonner)
+- avatar, skeleton, progress, separator
+- calendar, date-picker, popover
+- chart (recharts wrapper)
+
+Custom components built on top:
+- `StatsCard` — metric card with trend indicator
+- `AttendanceBadge` — present/absent/late chip
+- `DataTable` — TanStack Table wrapper with filters/pagination
+- `PageHeader` — breadcrumb + title + actions
+- `EmptyState` — illustrated empty states
+- `LoadingSkeleton` — page-level skeleton
+- `CommandPalette` — global ⌘K search
+
+---
+
+### Phase 3 — Layout Architecture
+
+#### [NEW] `src/app/layout.tsx`
+Root layout with providers (theme, query client, auth).
+
+#### [NEW] `src/components/layout/AppSidebar.tsx`
+Left icon sidebar (collapsed) + full sidebar (expanded):
+- Brand logo
+- Navigation groups (Dashboard, Attendance, Students, Teachers, Analytics, Reports, Settings)
+- Role-aware menu items
+- Bottom: user avatar, theme toggle, logout
+
+#### [NEW] `src/components/layout/TopBar.tsx`
+- Global search trigger (⌘K)
+- Notification bell with unread badge
+- User menu dropdown
+
+#### [NEW] `src/components/layout/DashboardLayout.tsx`
+Shared layout wrapper for all authenticated pages.
+
+---
+
+### Phase 4 — Public Landing Page
+
+#### [NEW] `src/app/(public)/page.tsx`
+Full sections:
+1. **Hero** — animated headline, CTA buttons, product screenshot
+2. **Trusted By** — logo strip (animated scroll)
+3. **Features** — 6 feature cards with icons
+4. **Platform Overview** — 3-column architecture diagram
+5. **How It Works** — 3-step animated flow
+6. **Security** — compliance badges, encryption callouts
+7. **Analytics Preview** — live recharts preview
+8. **Pricing** — 3 tier cards (Starter, Pro, Enterprise)
+9. **Testimonials** — carousel
+10. **FAQ** — accordion
+11. **CTA** — gradient banner
+12. **Footer** — links, social, legal
+
+---
+
+### Phase 5 — Authentication Pages
+
+#### [NEW] `src/app/(auth)/login/page.tsx`
+- Email + password form
+- Forgot password link
+- "Sign in with Google" (future, disabled state)
+- Animated illustration side panel
+
+#### [NEW] `src/app/(auth)/register/page.tsx`
+- Organization name, admin name, email, password
+- Multi-step form (org details → admin account → confirmation)
+
+#### [NEW] `src/app/(auth)/forgot-password/page.tsx`
+#### [NEW] `src/app/(auth)/verify-email/page.tsx`
+#### [NEW] `src/app/(auth)/setup/page.tsx`
+Organization setup wizard (4 steps: org info → departments → invite teachers → finish).
+
+---
+
+### Phase 6 — Admin Dashboard
+
+#### [NEW] `src/app/(dashboard)/admin/page.tsx`
+- **Hero strip**: Hi [Name] + date + quick stats
+- **Stats Row**: Today Present / Absent / Late / Avg Attendance (animated count-up)
+- **Attendance Trend Chart**: 30-day area chart (Recharts)
+- **Department Comparison**: bar chart
+- **Recent Activity**: feed with timestamps
+- **Quick Actions**: Mark Attendance, Add Student, Generate Report, etc.
+- **Upcoming Classes**: mini table
+
+---
+
+### Phase 7 — Core Module Pages
+
+#### [NEW] `src/app/(dashboard)/admin/students/page.tsx`
+- TanStack Table with columns: Name, ID, Department, Attendance %, Status
+- Search, filter by dept/status, sort
+- Add Student drawer (React Hook Form + Zod)
+- Bulk import CSV button
+- Row actions: View, Edit, Delete
+
+#### [NEW] `src/app/(dashboard)/admin/students/[id]/page.tsx`
+- Student profile card
+- Attendance history table + chart
+- Leave requests list
+- Edit profile modal
+
+#### [NEW] `src/app/(dashboard)/admin/teachers/page.tsx`
+Similar to students — teacher list management.
+
+#### [NEW] `src/app/(dashboard)/admin/departments/page.tsx`
+Department CRUD with class/subject counts.
+
+#### [NEW] `src/app/(dashboard)/admin/attendance/page.tsx`
+**Attendance Center:**
+- Session selector (date, class, subject)
+- Attendance grid (mark present/absent/late per student)
+- Bulk mark actions
+- Export CSV/PDF
+- Future: Face Recognition placeholder card
+
+#### [NEW] `src/app/(dashboard)/admin/analytics/page.tsx`
+- Attendance % trend (AreaChart)
+- Late arrivals heatmap
+- Department comparison (BarChart)
+- Risk students table (attendance < threshold)
+- Monthly breakdown (RadialChart)
+- AI Insights placeholder section
+
+#### [NEW] `src/app/(dashboard)/admin/reports/page.tsx`
+- Report type selector (Daily/Weekly/Monthly/Semester)
+- Date range picker
+- Filter by dept/class
+- Generated report cards with download links
+- S3 storage integration for report files
+
+#### [NEW] `src/app/(dashboard)/admin/notifications/page.tsx`
+- Notification center with tabs (All, Attendance, System, Workflow)
+- Mark read/unread
+- Notification settings
+
+#### [NEW] `src/app/(dashboard)/admin/workflow/page.tsx`
+- n8n workflow architecture overview
+- Webhook endpoints display
+- Workflow status cards (architecture/placeholder)
+
+#### [NEW] `src/app/(dashboard)/admin/audit-logs/page.tsx`
+- Filterable audit log table (actor, action, resource, timestamp, IP)
+
+#### [NEW] `src/app/(dashboard)/admin/settings/page.tsx`
+- Tabs: Organization, Security, Notifications, Integrations, Billing
+- S3 config, n8n webhook URL, AI API key slots
+
+---
+
+### Phase 8 — Teacher Portal
+
+#### [NEW] `src/app/(dashboard)/teacher/page.tsx`
+- Today's classes timeline
+- Quick mark attendance button
+- Student list for current class
+- Recent activity
+
+#### [NEW] `src/app/(dashboard)/teacher/attendance/page.tsx`
+- Class selector → Student attendance grid
+- Mark present/absent/late individually or bulk
+- Submit + auto-generate report
+
+#### [NEW] `src/app/(dashboard)/teacher/students/page.tsx`
+Read-only view of assigned students + attendance stats.
+
+#### [NEW] `src/app/(dashboard)/teacher/leave-requests/page.tsx`
+Approve/reject student leave requests.
+
+---
+
+### Phase 9 — Student Portal
+
+#### [NEW] `src/app/(dashboard)/student/page.tsx`
+- Personal attendance summary (present, absent, late, %)
+- Attendance calendar heatmap
+- Leave request button
+
+#### [NEW] `src/app/(dashboard)/student/attendance/page.tsx`
+Own attendance history table + charts.
+
+#### [NEW] `src/app/(dashboard)/student/leave/page.tsx`
+Submit leave requests, view status.
+
+---
+
+### Phase 10 — Backend (Flask)
+
+```
+backend/
+├── app/
+│   ├── __init__.py          # App factory
+│   ├── config/
+│   │   ├── __init__.py
+│   │   └── settings.py      # Env-based config
+│   ├── auth/
+│   │   ├── __init__.py
+│   │   └── jwt_handler.py   # Supabase JWT verification
+│   ├── middleware/
+│   │   ├── auth_middleware.py
+│   │   ├── cors_middleware.py
+│   │   └── rate_limiter.py
+│   ├── routes/
+│   │   ├── auth.py
+│   │   ├── organizations.py
+│   │   ├── students.py
+│   │   ├── teachers.py
+│   │   ├── attendance.py
+│   │   ├── analytics.py
+│   │   ├── reports.py
+│   │   ├── notifications.py
+│   │   ├── storage.py       # S3 presigned URLs
+│   │   ├── workflows.py     # n8n webhook triggers
+│   │   └── dashboard.py
+│   ├── services/
+│   │   ├── attendance_service.py
+│   │   ├── analytics_service.py
+│   │   ├── report_service.py
+│   │   ├── notification_service.py
+│   │   ├── storage_service.py   # S3 operations
+│   │   ├── workflow_service.py  # n8n triggers
+│   │   └── face_service.py      # STUB — future Rekognition
+│   ├── models/
+│   │   └── (Supabase client wrappers)
+│   ├── schemas/
+│   │   └── (Pydantic validation schemas)
+│   └── utils/
+│       ├── response.py      # Standardized JSON responses
+│       ├── pagination.py
+│       └── validators.py
+├── requirements.txt
+├── .env.example
+└── run.py
+```
+
+---
+
+### Phase 11 — Database Schema (Supabase SQL)
+
+#### [NEW] `database/schema.sql`
+
+Key tables:
+- `organizations` — multi-tenant root
+- `users` (extends auth.users)
+- `roles` — role definitions
+- `user_roles` — role assignments
+- `departments`
+- `courses` / `subjects` / `classes`
+- `students` / `teachers`
+- `attendance_sessions`
+- `attendance` — per-student records
+- `leave_requests`
+- `notifications`
+- `reports`
+- `audit_logs`
+- `workflow_logs` — n8n trigger history
+- `face_profiles` — STUB for future Rekognition
+- `storage_files` — S3 metadata
+- `settings`
+
+All tables: UUID PKs, `organization_id` FK, `created_at`, `updated_at`, `deleted_at` (soft delete), proper indexes.
+
+RLS policies per table for all 4 role tiers.
+
+---
+
+### Phase 12 — Supporting Files
+
+#### [NEW] `src/lib/supabase/client.ts` + `server.ts`
+#### [NEW] `src/lib/api/` — typed API client functions
+#### [NEW] `src/lib/hooks/` — custom React hooks
+#### [NEW] `src/store/` — Zustand stores (auth, ui, attendance)
+#### [NEW] `src/types/` — shared TypeScript interfaces
+#### [NEW] `.env.local.example`
+#### [NEW] `README.md` — full setup guide
+
+---
+
+## Visual Design System
+
+| Token | Value |
+|---|---|
+| Brand Primary | Indigo `hsl(243, 75%, 59%)` |
+| Brand Accent | Violet `hsl(270, 91%, 65%)` |
+| Success | Emerald `hsl(160, 84%, 39%)` |
+| Warning | Amber `hsl(38, 92%, 50%)` |
+| Danger | Rose `hsl(347, 77%, 50%)` |
+| Neutral | Slate scale |
+| Border Radius | `0.75rem` (cards), `0.5rem` (inputs) |
+| Font | Inter (Google Fonts) |
+
+Inspired by the provided reference images:
+- Soft pastel card fills per category
+- Left icon sidebar with active state highlight
+- Rich stats panels on the right
+- Activity chart with colored bars
+- Clean rounded card grid for students/attendance
+
+---
+
+## Verification Plan
+
+### Automated
+- `npm run build` — TypeScript + Next.js compilation
+- `npm run lint` — ESLint pass
+
+### Manual
+- Landing page renders fully on desktop + mobile
+- Auth flow: register → verify → login → dashboard
+- Admin dashboard stats cards animate on load
+- Attendance table: search, filter, sort work
+- Theme toggle: dark ↔ light persists
+- All role portals accessible with correct navigation
+
+---
+
+## Delivery Order
+
+1. ✅ Project bootstrap (Next.js + Tailwind + shadcn/ui)
+2. ✅ Design system + global styles
+3. ✅ Layout components (sidebar, topbar)
+4. ✅ Landing page (all sections)
+5. ✅ Auth pages (login, register, setup wizard)
+6. ✅ Admin dashboard + core pages
+7. ✅ Teacher + Student portals
+8. ✅ Flask backend structure + all routes
+9. ✅ Supabase schema SQL
+10. ✅ README + env config

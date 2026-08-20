@@ -162,7 +162,7 @@ export function TopBar({ title, breadcrumbs }: TopBarProps) {
             </Avatar>
             <div className="text-center">
               <p className="text-sm font-semibold leading-tight">{mounted && user?.full_name ? user.full_name : "Admin User"}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{mounted && user?.email ? user.email : "admin@attendai.com"}</p>
+              <p className="text-xs text-muted-foreground mt-0.5">{mounted && user?.email ? user.email : "admin@IntelliPresence.com"}</p>
               <span className="inline-block mt-1.5 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium capitalize">
                 {mounted && user?.role ? user.role : "admin"}
               </span>

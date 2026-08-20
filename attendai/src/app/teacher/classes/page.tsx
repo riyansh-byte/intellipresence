@@ -18,7 +18,7 @@ const classesList = [
     studentsCount: 48,
     avgAttendance: 94.2,
     department: "Computer Science",
-    color: "from-blue-500/10 to-indigo-500/10 text-primary border-primary/20",
+    color: "from-emerald-500/10 to-teal-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   },
   {
     id: "c2",
@@ -40,7 +40,7 @@ const classesList = [
     studentsCount: 52,
     avgAttendance: 91.8,
     department: "Computer Science",
-    color: "from-violet-500/10 to-purple-500/10 text-violet-600 dark:text-violet-400 border-violet-500/20",
+    color: "from-emerald-500/10 to-teal-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/20",
   },
   {
     id: "c4",

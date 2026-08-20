@@ -13,18 +13,38 @@ import { useAuthStore } from "@/store";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { format } from "date-fns";
+import { useEffect, useState } from "react";
+import { studentsApi } from "@/lib/api";
 
 export default function StudentDashboardPage() {
   const { user } = useAuthStore();
   const today = new Date();
+  const [studentProfile, setStudentProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Student specific mock details
-  const attendanceRate = 86; // 86% average attendance rate
-  const classesToday = [
-    { id: "cs1", code: "CS301", name: "Design & Analysis of Algorithms", time: "09:00 AM — 10:30 AM", status: "present" },
-    { id: "cs2", code: "CS305", name: "Operating Systems Lab", time: "11:00 AM — 01:00 PM", status: "present" },
-    { id: "cs3", code: "CS402", name: "Artificial Intelligence", time: "02:30 PM — 04:00 PM", status: "scheduled" },
-  ];
+  useEffect(() => {
+    const fetchStudentProfile = async () => {
+      try {
+        const result = await studentsApi.me() as any;
+        setStudentProfile(result?.data || null);
+      } catch (err) {
+        console.error("Failed to load student dashboard profile:", err);
+        setStudentProfile(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStudentProfile();
+  }, []);
+
+  const attendanceRate = studentProfile?.attendance_percentage ?? studentProfile?.attendance_summary?.attendance_percentage ?? 0;
+  const totalSessions = studentProfile?.attendance_summary?.total_sessions ?? 0;
+  const absencesRecorded = studentProfile?.attendance_summary?.absent_count ?? 0;
+  const displayName = studentProfile?.full_name ?? user?.full_name ?? "Student";
+  const rollNumber = studentProfile?.roll_number ?? "—";
+  const departmentName = studentProfile?.department?.name ?? "—";
+  const studentId = studentProfile?.student_id ?? "—";
 
   return (
     <DashboardLayout
@@ -40,10 +60,10 @@ export default function StudentDashboardPage() {
         >
           <div>
             <h1 className="text-2xl font-bold tracking-tight">
-              Hello, {user?.full_name ?? "Rahul Sharma"} 👋
+              Hello, {displayName} 👋
             </h1>
             <p className="text-sm text-muted-foreground mt-1">
-              Student Dashboard · Roll No: CSE-24-0012 · {format(today, "EEEE, MMMM d, yyyy")}
+              Student Dashboard · Roll No: {rollNumber} · {studentId} · {format(today, "EEEE, MMMM d, yyyy")}
             </p>
           </div>
           <Link href="/student/leave">
@@ -60,22 +80,22 @@ export default function StudentDashboardPage() {
           title="Attendance Rate"
           value={attendanceRate}
           suffix="%"
-          subtitle="Above 75% threshold"
+          subtitle={attendanceRate >= 75 ? "Above 75% threshold" : "Needs attention"}
           icon={<CheckCircle2 className="w-5 h-5 text-success" />}
-          variant="success"
+          variant={attendanceRate >= 75 ? "success" : "danger"}
           delay={0}
         />
         <StatsCard
           title="Classes Conducted"
-          value={42}
+          value={totalSessions}
           subtitle="Total recorded sessions"
           icon={<BookOpen className="w-5 h-5 text-primary" />}
           delay={0.05}
         />
         <StatsCard
           title="Absences Recorded"
-          value={6}
-          subtitle="Includes 2 excused leaves"
+          value={absencesRecorded}
+          subtitle={departmentName === "—" ? "Syncing live attendance data" : `${departmentName} student record`}
           icon={<AlertTriangle className="w-5 h-5 text-danger" />}
           variant="danger"
           delay={0.1}
@@ -87,51 +107,37 @@ export default function StudentDashboardPage() {
         {/* Left Column (2/3): Today's Lectures timeline */}
         <div className="xl:col-span-2 space-y-6">
           <SectionCard
-            title="Today's Classes & Roll Calls"
-            description="Timeline of class sessions conducted today"
+            title="Student Record Snapshot"
+            description="Live profile details synced from the authenticated student record"
           >
             <div className="space-y-4">
-              {classesToday.map((cls, i) => (
-                <motion.div
-                  key={cls.id}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.05 }}
-                  className="flex items-center justify-between p-4 border rounded-2xl bg-card hover:shadow-card transition-all gap-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-600 flex items-center justify-center shrink-0">
-                      <BookOpen className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <Badge variant="outline" className="font-mono text-xs">{cls.code}</Badge>
-                        <h4 className="text-sm font-semibold">{cls.name}</h4>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5" />
-                        {cls.time}
-                      </p>
-                    </div>
+              <div className="flex items-center justify-between p-4 border rounded-2xl bg-card gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 text-brand-600 flex items-center justify-center shrink-0">
+                    <BookOpen className="w-5 h-5" />
                   </div>
-
                   <div>
-                    {cls.status === "present" ? (
-                      <Badge className="bg-success/10 text-success border-success/30 font-semibold px-2.5 py-0.5 rounded-full">
-                        Present
-                      </Badge>
-                    ) : cls.status === "scheduled" ? (
-                      <Badge variant="outline" className="text-muted-foreground font-semibold px-2.5 py-0.5 rounded-full">
-                        Scheduled
-                      </Badge>
-                    ) : (
-                      <Badge className="bg-danger/10 text-danger border-danger/30 font-semibold px-2.5 py-0.5 rounded-full">
-                        Absent
-                      </Badge>
-                    )}
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="font-mono text-xs">{studentId}</Badge>
+                      <h4 className="text-sm font-semibold">{displayName}</h4>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1.5">
+                      <Clock className="w-3.5 h-3.5" />
+                      Department: {departmentName}
+                    </p>
                   </div>
-                </motion.div>
-              ))}
+                </div>
+
+                <div>
+                  <Badge className="bg-success/10 text-success border-success/30 font-semibold px-2.5 py-0.5 rounded-full">
+                    {loading ? "Syncing..." : "Live profile"}
+                  </Badge>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-dashed border-border p-4 text-sm text-muted-foreground">
+                {loading ? "Loading your live student record..." : "Your dashboard is now reading the real authenticated student profile instead of demo values."}
+              </div>
             </div>
           </SectionCard>
         </div>

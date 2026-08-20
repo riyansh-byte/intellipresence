@@ -37,7 +37,7 @@ const chartData = [
 ];
 
 export default function TeacherReportsPage() {
-  const [selectedClass, setSelectedClass] = useState("all");
+  const [selectedClass, setSelectedClass] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
@@ -103,7 +103,7 @@ export default function TeacherReportsPage() {
                       fontSize: "12px",
                     }}
                   />
-                  <Legend wrapperStyle={{ fontSize: "11px", pt: 10 }} />
+                  <Legend wrapperStyle={{ fontSize: "11px" }} />
                   <Bar dataKey="Present" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} barSize={36} />
                   <Bar dataKey="Absent" fill="hsl(var(--muted-foreground)/30)" radius={[4, 4, 0, 0]} barSize={36} />
                 </BarChart>
@@ -118,7 +118,10 @@ export default function TeacherReportsPage() {
             <div className="space-y-4">
               <div className="space-y-1.5">
                 <Label htmlFor="classSelect">Choose Class</Label>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select
+                  value={selectedClass}
+                  onValueChange={(value) => setSelectedClass(value ?? "all")}
+                >
                   <SelectTrigger id="classSelect">
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>

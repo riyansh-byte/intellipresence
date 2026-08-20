@@ -46,7 +46,7 @@ function FadeIn({ children, delay = 0, className = "" }: { children: React.React
 const features = [
   { icon: <Brain className="w-5 h-5" />, title: "AI-Powered Intelligence", desc: "Machine learning models detect anomalies, predict at-risk students, and surface actionable insights automatically.", color: "bg-brand-500/10 text-brand-500" },
   { icon: <CalendarCheck className="w-5 h-5" />, title: "Smart Attendance Tracking", desc: "Manual, QR, and facial recognition modes. Capture attendance in seconds — not minutes.", color: "bg-success/10 text-success" },
-  { icon: <BarChart3 className="w-5 h-5" />, title: "Real-time Analytics", desc: "Live dashboards with department comparisons, trends, risk scoring, and custom report generation.", color: "bg-violet-500/10 text-violet-500" },
+  { icon: <BarChart3 className="w-5 h-5" />, title: "Real-time Analytics", desc: "Live dashboards with department comparisons, trends, risk scoring, and custom report generation.", color: "bg-emerald-500/10 text-emerald-600" },
   { icon: <Zap className="w-5 h-5" />, title: "Workflow Automation", desc: "Connect to n8n for zero-touch automation — notifications, reports, and escalations triggered automatically.", color: "bg-warning/10 text-warning" },
   { icon: <Shield className="w-5 h-5" />, title: "Enterprise Security", desc: "Row Level Security, JWT auth, encrypted storage, audit logs, and GDPR-compliant data handling.", color: "bg-danger/10 text-danger" },
   { icon: <Cloud className="w-5 h-5" />, title: "Cloud-Native Architecture", desc: "Built on Supabase + AWS S3. Scales to millions of records with zero maintenance overhead.", color: "bg-info/10 text-info" },
@@ -90,17 +90,17 @@ const plans = [
 ];
 
 const testimonials = [
-  { name: "Dr. Ramesh Iyer", role: "Principal, KV Engineering College", text: "AttendAI reduced our attendance marking time by 80%. The analytics dashboard gives us insights we never had before.", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ramesh" },
-  { name: "Sarah Chen", role: "HR Director, TechCorp India", text: "We track 3,000 employees across 5 offices. AttendAI's workflow automation means zero manual follow-up.", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
+  { name: "Dr. Ramesh Iyer", role: "Principal, KV Engineering College", text: "IntelliPresence reduced our attendance marking time by 80%. The analytics dashboard gives us insights we never had before.", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ramesh" },
+  { name: "Sarah Chen", role: "HR Director, TechCorp India", text: "We track 3,000 employees across 5 offices. IntelliPresence's workflow automation means zero manual follow-up.", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah" },
   { name: "Prof. Anand Krishnan", role: "Dean, National University", text: "The role-based access is exactly what we needed. Each department sees only their own data.", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Anand" },
 ];
 
 const faqs = [
-  { q: "Does AttendAI work offline?", a: "AttendAI requires an internet connection for real-time sync. Offline mode is on our roadmap for Q2." },
+  { q: "Does IntelliPresence work offline?", a: "IntelliPresence requires an internet connection for real-time sync. Offline mode is on our roadmap for Q2." },
   { q: "How is facial recognition handled?", a: "Face recognition uses AWS Rekognition. Face data is stored in AWS, never in our database. You control deletion." },
   { q: "Can we import existing student data?", a: "Yes. You can import students, teachers, and departments via CSV or connect to your existing SIS via API." },
   { q: "Is there a mobile app?", a: "A React Native mobile app is currently in development. The web app is fully responsive in the meantime." },
-  { q: "What about GDPR compliance?", a: "AttendAI is GDPR-ready. Data is stored in EU-region Supabase instances by default, with full audit logs." },
+  { q: "What about GDPR compliance?", a: "IntelliPresence is GDPR-ready. Data is stored in EU-region Supabase instances by default, with full audit logs." },
 ];
 
 // ─────────────────────────────────────────
@@ -118,7 +118,7 @@ export default function LandingPage() {
             <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center shadow-brand-sm">
               <Shield className="w-4 h-4 text-white" />
             </div>
-            <span className="text-sm font-bold gradient-text">AttendAI</span>
+            <span className="text-sm font-bold gradient-text">IntelliPresence</span>
           </Link>
           <div className="hidden md:flex items-center gap-6 text-sm text-muted-foreground">
             <Link href="#features" className="hover:text-foreground transition-colors">Features</Link>
@@ -142,7 +142,7 @@ export default function LandingPage() {
         {/* Gradient mesh bg */}
         <div className="absolute inset-0 -z-10">
           <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-          <div className="absolute top-20 right-1/4 w-72 h-72 bg-violet-500/10 rounded-full blur-3xl" />
+          <div className="absolute top-20 right-1/4 w-72 h-72 bg-emerald-500/10 rounded-full blur-3xl" />
           <div className="absolute bottom-0 left-1/2 w-64 h-64 bg-success/5 rounded-full blur-3xl" />
         </div>
 
@@ -175,7 +175,7 @@ export default function LandingPage() {
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg text-muted-foreground max-w-2xl mx-auto mb-10 text-balance"
           >
-            AttendAI replaces manual registers with a cloud-native platform that automates tracking,
+            IntelliPresence replaces manual registers with a cloud-native platform that automates tracking,
             generates real-time analytics, and connects your entire attendance workflow — from classroom to boardroom.
           </motion.p>
 
@@ -221,7 +221,7 @@ export default function LandingPage() {
               <div className="w-3 h-3 rounded-full bg-warning/70" />
               <div className="w-3 h-3 rounded-full bg-success/70" />
               <div className="flex-1 ml-3 bg-background rounded px-3 py-1 text-xs text-muted-foreground border border-border max-w-xs">
-                app.attendai.com/admin
+                app.IntelliPresence.com/admin
               </div>
             </div>
             {/* Mock dashboard */}
@@ -291,7 +291,7 @@ export default function LandingPage() {
               <span className="gradient-text">smarter attendance</span>
             </h2>
             <p className="text-muted-foreground max-w-2xl mx-auto">
-              Built for schools, colleges, and enterprises. AttendAI brings the power of enterprise software to institutions of every size.
+              Built for schools, colleges, and enterprises. IntelliPresence brings the power of enterprise software to institutions of every size.
             </p>
           </FadeIn>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -369,7 +369,7 @@ export default function LandingPage() {
       <section id="pricing" className="py-24 px-6 bg-muted/30">
         <div className="max-w-5xl mx-auto">
           <FadeIn className="text-center mb-16">
-            <Badge className="mb-4 bg-violet-500/10 text-violet-600 border-violet-200">Pricing</Badge>
+            <Badge className="mb-4 bg-emerald-500/10 text-emerald-700 border-emerald-200">Pricing</Badge>
             <h2 className="text-4xl font-bold tracking-tight mb-4">
               Simple, transparent <span className="gradient-text">pricing</span>
             </h2>
@@ -482,7 +482,7 @@ export default function LandingPage() {
               Ready to transform your attendance?
             </h2>
             <p className="text-white/80 mb-8 text-lg relative">
-              Join thousands of institutions already using AttendAI. Get started in minutes.
+              Join thousands of institutions already using IntelliPresence. Get started in minutes.
             </p>
             <div className="flex items-center justify-center gap-3 flex-wrap relative">
               <Link href="/register">
@@ -509,7 +509,7 @@ export default function LandingPage() {
                 <div className="w-7 h-7 rounded-lg gradient-brand flex items-center justify-center">
                   <Shield className="w-3.5 h-3.5 text-white" />
                 </div>
-                <span className="font-bold gradient-text">AttendAI</span>
+                <span className="font-bold gradient-text">IntelliPresence</span>
               </Link>
               <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
                 The intelligent attendance platform built for modern organizations. Cloud-native, AI-powered, enterprise-ready.
@@ -548,7 +548,7 @@ export default function LandingPage() {
             ))}
           </div>
           <div className="pt-6 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2 text-xs text-muted-foreground">
-            <p>© 2024 AttendAI. All rights reserved.</p>
+            <p>© 2024 IntelliPresence. All rights reserved.</p>
             <p>Built with Next.js · Supabase · AWS · n8n</p>
           </div>
         </div>

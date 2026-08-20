@@ -11,11 +11,11 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "AttendAI — Smart Attendance Intelligence Platform",
-    template: "%s | AttendAI",
+    default: "IntelliPresence — Smart Attendance Intelligence Platform",
+    template: "%s | IntelliPresence",
   },
   description:
-    "AttendAI is a cloud-native AI-powered attendance and workforce intelligence platform for schools, colleges, and enterprises. Automate attendance tracking, generate reports, and gain deep analytics.",
+    "IntelliPresence is a cloud-native AI-powered attendance and workforce intelligence platform for schools, colleges, and enterprises. Automate attendance tracking, generate reports, and gain deep analytics.",
   keywords: [
     "attendance management",
     "AI attendance",
@@ -25,22 +25,22 @@ export const metadata: Metadata = {
     "HRTech",
     "SaaS",
   ],
-  authors: [{ name: "AttendAI Team" }],
-  creator: "AttendAI",
+  authors: [{ name: "IntelliPresence Team" }],
+  creator: "IntelliPresence",
   openGraph: {
     type: "website",
     locale: "en_US",
-    url: "https://attendai.app",
-    title: "AttendAI — Smart Attendance Intelligence Platform",
+    url: "https://IntelliPresence.app",
+    title: "IntelliPresence — Smart Attendance Intelligence Platform",
     description:
       "Cloud-native AI-powered attendance and workforce intelligence platform.",
-    siteName: "AttendAI",
+    siteName: "IntelliPresence",
   },
   twitter: {
     card: "summary_large_image",
-    title: "AttendAI — Smart Attendance Intelligence Platform",
+    title: "IntelliPresence — Smart Attendance Intelligence Platform",
     description: "Cloud-native AI-powered attendance and workforce intelligence platform.",
-    creator: "@attendai",
+    creator: "@IntelliPresence",
   },
   robots: {
     index: true,

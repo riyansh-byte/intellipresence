@@ -2,10 +2,10 @@
 
 import { AppSidebar } from "@/components/layout/AppSidebar";
 import { TopBar } from "@/components/layout/TopBar";
-import { useUIStore } from "@/store";
-import { cn } from "@/lib/utils";
+import { useAuthStore, useUIStore } from "@/store";
 import { motion } from "framer-motion";
-import type { UserRole } from "@/types";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -21,6 +21,37 @@ export function DashboardLayout({
   breadcrumbs,
 }: DashboardLayoutProps) {
   const { sidebarCollapsed } = useUIStore();
+  const { user, isLoading } = useAuthStore();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoading) return; // wait for hydration
+
+    if (!user) {
+      router.replace("/login");
+      return;
+    }
+
+    if (user.role !== role) {
+      if (user.role === "teacher") router.replace("/teacher");
+      else if (user.role === "student") router.replace("/student");
+      else router.replace("/admin");
+    }
+  }, [isLoading, user, role, router]);
+
+  // While loading, show spinner
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+      </div>
+    );
+  }
+
+  // Not logged in or wrong role — let the useEffect redirect handle it
+  if (!user || user.role !== role) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-background">

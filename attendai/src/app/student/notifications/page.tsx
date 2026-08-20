@@ -44,7 +44,7 @@ const initialNotifications = [
   {
     id: "n4",
     title: "System Maintenance Notice",
-    description: "The AttendAI portal will undergo planned maintenance on Sunday, July 12 from 02:00 AM to 04:00 AM.",
+    description: "The IntelliPresence portal will undergo planned maintenance on Sunday, July 12 from 02:00 AM to 04:00 AM.",
     type: "system",
     date: "June 29, 2026",
     read: true,

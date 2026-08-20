@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2, ArrowRight, ArrowLeft, Building2, User, Key, CheckCircle, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/lib/supabase/client";
+import { authApi } from "@/lib/api";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -43,30 +45,68 @@ export default function RegisterPage() {
     }
 
     setIsLoading(true);
-    // Simulate API registration call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsLoading(false);
-
-    // Mock authenticated user object
-    const mockUser = {
-      id: "usr_mock_admin_01",
+    const { data, error } = await supabase.auth.signUp({
       email,
-      full_name: adminName,
-      role: "org_admin" as const,
-      avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=${adminName}`,
-      organization_id: "org_mock_created",
-      organization: {
-        id: "org_mock_created",
-        name: orgName,
-        slug: domain,
-        logo_url: "",
-        plan: "starter" as const,
+      password,
+      options: {
+        data: {
+          full_name: adminName,
+          organization_name: orgName,
+          organization_slug: domain,
+          organization_id: "",
+        },
       },
-    };
+    });
 
-    setUser(mockUser);
-    toast.success("Organization registered successfully!");
-    router.push("/setup"); // Forward to setup wizard
+    if (error || !data.user) {
+      setIsLoading(false);
+      toast.error(error?.message || "Unable to create account");
+      return;
+    }
+
+    // If session is immediately available (email confirmation disabled), complete setup atomically
+    if (data.session) {
+      try {
+        const setupResult = await authApi.completeSetup({
+          organization_name: orgName,
+          departments: [
+            { name: "Computer Science & Engineering", code: "CSE" },
+            { name: "Electronics & Communication", code: "ECE" }
+          ]
+        });
+
+        const profile = setupResult.data.profile;
+        const organization = setupResult.data.organization;
+
+        setUser({
+          id: profile.id,
+          email: profile.email,
+          full_name: profile.full_name,
+          role: profile.role,
+          organization_id: profile.organization_id,
+          organization: {
+            id: organization.id,
+            name: organization.name,
+            slug: organization.domain,
+            logo_url: organization.logo_url || "",
+            plan: "starter"
+          }
+        });
+
+        toast.success("Organization registered and setup completed successfully!");
+        router.push("/admin");
+      } catch (setupErr: any) {
+        console.error("Atomic setup failed:", setupErr);
+        toast.error("Account created, but database setup failed. Please complete it on the next screen.");
+        router.push("/setup");
+      } finally {
+        setIsLoading(false);
+      }
+    } else {
+      setIsLoading(false);
+      toast.success("Registration successful! Please confirm your email address to complete setup.");
+      router.push("/login");
+    }
   };
 
   return (
@@ -81,7 +121,7 @@ export default function RegisterPage() {
           <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center shadow-brand-sm">
             <Shield className="w-4 h-4 text-white" />
           </div>
-          <span className="text-sm font-bold gradient-text">AttendAI</span>
+          <span className="text-sm font-bold gradient-text">IntelliPresence</span>
         </Link>
 
         {/* Step-by-Step wizard */}
@@ -137,7 +177,7 @@ export default function RegisterPage() {
                     <Label htmlFor="domain">Domain / Slug identifier</Label>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground/70 font-mono">
-                        attendai.com/
+                        IntelliPresence.com/
                       </span>
                       <Input
                         id="domain"
@@ -270,7 +310,7 @@ export default function RegisterPage() {
       <div className="hidden lg:col-span-7 lg:flex flex-col justify-between p-12 md:p-16 relative bg-muted/40 border-l border-border/50">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-[-10%] right-[-10%] w-96 h-96 bg-brand-500/10 rounded-full blur-3xl" />
-          <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-violet-500/10 rounded-full blur-3xl" />
+          <div className="absolute bottom-[-10%] left-[-10%] w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl" />
         </div>
 
         <div className="flex items-center gap-2 self-end text-xs text-muted-foreground/80 font-medium bg-background/50 border border-border/50 rounded-full px-3 py-1 backdrop-blur-sm relative z-10">
@@ -302,7 +342,7 @@ export default function RegisterPage() {
         </div>
 
         <div className="flex items-center justify-between text-xs text-muted-foreground/60 relative z-10 shrink-0">
-          <span>AttendAI Platform v1.2</span>
+          <span>IntelliPresence Platform v1.2</span>
           <span>Security Compliant GDPR</span>
         </div>
       </div>

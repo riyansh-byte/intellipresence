@@ -125,6 +125,7 @@ export function AppSidebar({ role = "org_admin" }: AppSidebarProps) {
   useEffect(() => { setMounted(true); }, []);
 
   const nav = role === "teacher" ? teacherNav : role === "student" ? studentNav : adminNav;
+  const navItems = nav as Array<{ label: string; items: Array<{ href: string; icon: typeof LayoutDashboard; label: string; exact?: boolean }> }>;
 
   const isActive = (href: string, exact?: boolean) => {
     if (exact) return pathname === href;
@@ -137,7 +138,7 @@ export function AppSidebar({ role = "org_admin" }: AppSidebarProps) {
   };
 
   return (
-    <TooltipProvider delayDuration={0}>
+    <TooltipProvider delay={0}>
       <motion.aside
         animate={{ width: sidebarCollapsed ? 72 : 256 }}
         transition={{ duration: 0.25, ease: "easeInOut" }}
@@ -159,7 +160,7 @@ export function AppSidebar({ role = "org_admin" }: AppSidebarProps) {
                   className="overflow-hidden"
                 >
                   <span className="text-sm font-bold tracking-tight gradient-text whitespace-nowrap">
-                    AttendAI
+                    IntelliPresence
                   </span>
                   <p className="text-[10px] text-muted-foreground leading-none mt-0.5">
                     Attendance Intelligence
@@ -182,7 +183,7 @@ export function AppSidebar({ role = "org_admin" }: AppSidebarProps) {
 
         {/* Navigation */}
         <nav className="flex-1 overflow-y-auto py-5 px-3 space-y-6 no-scrollbar">
-          {nav.map((group) => (
+          {navItems.map((group) => (
             <div key={group.label}>
               <AnimatePresence>
                 {!sidebarCollapsed && (

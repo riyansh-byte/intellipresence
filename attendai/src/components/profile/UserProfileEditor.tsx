@@ -25,9 +25,9 @@ export function UserProfileEditor({ roleLabel }: UserProfileEditorProps) {
 
   // Form states
   const [fullName, setFullName] = useState(user?.full_name ?? "Admin User");
-  const [email, setEmail] = useState(user?.email ?? "admin@attendai.com");
+  const [email, setEmail] = useState(user?.email ?? "admin@IntelliPresence.com");
   const [phone, setPhone] = useState("+1 (555) 019-2834");
-  const [bio, setBio] = useState("Member of the AttendAI administration board.");
+  const [bio, setBio] = useState("Member of the IntelliPresence administration board.");
   
   // Password states
   const [currentPassword, setCurrentPassword] = useState("");

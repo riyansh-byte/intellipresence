@@ -47,7 +47,7 @@ export default function NotFound() {
           </Link>
           <Link href="/login">
             <Button variant="ghost" className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-              Sign In to AttendAI <ChevronRight className="w-3.5 h-3.5" />
+              Sign In to IntelliPresence <ChevronRight className="w-3.5 h-3.5" />
             </Button>
           </Link>
         </motion.div>
@@ -55,8 +55,8 @@ export default function NotFound() {
 
       {/* Footer */}
       <div className="absolute bottom-6 left-6 right-6 flex items-center justify-between text-[11px] text-muted-foreground/80 z-10">
-        <span>© 2026 AttendAI Corp.</span>
-        <a href="mailto:support@attendai.app" className="hover:text-foreground underline underline-offset-4 transition-colors">
+        <span>© 2026 IntelliPresence Corp.</span>
+        <a href="mailto:support@IntelliPresence.app" className="hover:text-foreground underline underline-offset-4 transition-colors">
           Contact support
         </a>
       </div>

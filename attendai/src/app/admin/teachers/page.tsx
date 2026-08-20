@@ -21,21 +21,25 @@ import {
   Search, Plus, MoreHorizontal, Eye, Pencil, Trash2,
   Download, GraduationCap, X, Users, TrendingUp,
   Mail, Hash, User, BookOpen, Save, BarChart3,
-  CheckCircle2, XCircle, Clock,
+  CheckCircle2, XCircle, Loader2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Teacher } from "@/types";
+import { InviteTeacherModal } from "@/components/InviteTeacherModal";
+import { teachersApi, departmentsApi } from "@/lib/api";
+import { toast } from "sonner";
 
 // ─────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────
 
-function getDeptName(id: string) {
-  return mockDepartments.find((d) => d.id === id)?.name ?? "Unknown";
+function getDeptName(id: string, depts?: any[]) {
+  const list = depts && depts.length > 0 ? depts : mockDepartments;
+  return list.find((d) => d.id === id)?.name ?? "Unknown";
 }
 
 /** Derive mock class attendance stats for a teacher */
-function getTeacherStats(teacher: Teacher) {
+function getTeacherStats(teacher: Teacher, depts?: any[]) {
   // Students in same dept = teacher's "class"
   const deptStudents = mockStudents.filter((s) => s.department_id === teacher.department_id);
   const totalStudents = deptStudents.length;
@@ -43,17 +47,17 @@ function getTeacherStats(teacher: Teacher) {
   // Simulate class sessions
   const classes = [
     {
-      name: `${getDeptName(teacher.department_id).split(" ")[0]} 101`,
+      name: `${getDeptName(teacher.department_id, depts).split(" ")[0]} 101`,
       totalStudents: Math.ceil(totalStudents * 0.5),
       present: Math.ceil(totalStudents * 0.5 * 0.85),
     },
     {
-      name: `${getDeptName(teacher.department_id).split(" ")[0]} 201`,
+      name: `${getDeptName(teacher.department_id, depts).split(" ")[0]} 201`,
       totalStudents: Math.ceil(totalStudents * 0.3),
       present: Math.ceil(totalStudents * 0.3 * 0.78),
     },
     {
-      name: `${getDeptName(teacher.department_id).split(" ")[0]} 301`,
+      name: `${getDeptName(teacher.department_id, depts).split(" ")[0]} 301`,
       totalStudents: Math.ceil(totalStudents * 0.2),
       present: Math.ceil(totalStudents * 0.2 * 0.91),
     },
@@ -70,8 +74,8 @@ function getTeacherStats(teacher: Teacher) {
 // Teacher Profile Modal
 // ─────────────────────────────────────────
 
-function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
-  const stats = getTeacherStats(teacher);
+function TeacherProfileModal({ teacher, onClose, depts }: { teacher: Teacher; onClose: () => void; depts?: any[] }) {
+  const stats = getTeacherStats(teacher, depts);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -93,7 +97,7 @@ function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: 
         className="relative w-full max-w-lg bg-card border border-border rounded-2xl shadow-2xl overflow-hidden z-10 max-h-[90vh] overflow-y-auto"
       >
         {/* Header gradient banner */}
-        <div className="h-20 bg-gradient-to-r from-violet-600 to-indigo-600 relative shrink-0">
+        <div className="h-20 bg-gradient-to-r from-emerald-600 to-teal-600 relative shrink-0">
           <Button
             variant="ghost"
             size="icon"
@@ -109,7 +113,7 @@ function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: 
           <div className="-mt-10 mb-4 flex items-end gap-4">
             <Avatar className="w-20 h-20 ring-4 ring-card shadow-xl">
               <AvatarImage src={teacher.avatar_url} />
-              <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-violet-500 to-indigo-500 text-white">
+              <AvatarFallback className="text-xl font-bold bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
                 {teacher.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
               </AvatarFallback>
             </Avatar>
@@ -123,7 +127,7 @@ function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: 
           <div className="grid grid-cols-2 gap-3 mb-5">
             {[
               { icon: Hash, label: "Employee ID", value: teacher.employee_id },
-              { icon: User, label: "Department", value: getDeptName(teacher.department_id) },
+              { icon: User, label: "Department", value: getDeptName(teacher.department_id, depts) },
               { icon: Mail, label: "Email", value: teacher.email ?? "—" },
               { icon: BookOpen, label: "Designation", value: teacher.designation ?? "Faculty Member" },
             ].map(({ icon: Icon, label, value }) => (
@@ -138,9 +142,9 @@ function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: 
           </div>
 
           {/* Overall attendance stat */}
-          <div className="bg-gradient-to-br from-violet-500/10 to-indigo-500/10 border border-violet-500/20 rounded-xl p-4 mb-4">
+          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-xl p-4 mb-4">
             <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
-              <BarChart3 className="w-4 h-4 text-violet-500" />
+              <BarChart3 className="w-4 h-4 text-emerald-600" />
               Class Attendance Overview
             </h3>
 
@@ -223,13 +227,15 @@ function TeacherProfileModal({ teacher, onClose }: { teacher: Teacher; onClose: 
 // Edit Teacher Modal
 // ─────────────────────────────────────────
 
-function EditTeacherModal({ teacher, onClose }: { teacher: Teacher; onClose: () => void }) {
+function EditTeacherModal({ teacher, onClose, depts }: { teacher: Teacher; onClose: () => void; depts?: any[] }) {
   const [form, setForm] = useState({
     full_name: teacher.full_name,
     email: teacher.email ?? "",
     designation: teacher.designation ?? "",
     department_id: teacher.department_id,
   });
+
+  const departmentList = depts && depts.length > 0 ? depts : mockDepartments;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -284,7 +290,7 @@ function EditTeacherModal({ teacher, onClose }: { teacher: Teacher; onClose: () 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {mockDepartments.map((d) => (
+                {departmentList.map((d) => (
                   <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -309,22 +315,65 @@ function EditTeacherModal({ teacher, onClose }: { teacher: Teacher; onClose: () 
 
 export default function TeachersPage() {
   const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState(() => {
+    if (typeof window === "undefined") return "all";
+    return new URLSearchParams(window.location.search).get("department") ?? "all";
+  });
   const [profileTeacher, setProfileTeacher] = useState<Teacher | null>(null);
   const [editTeacher, setEditTeacher] = useState<Teacher | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchTeachers = async () => {
+    try {
+      setIsLoading(true);
+      const res = await teachersApi.list() as any;
+      if (res && res.data && res.data.length > 0) {
+        const mapped = res.data.map((t: any) => ({
+          id: t.id,
+          created_at: t.created_at,
+          updated_at: t.updated_at,
+          organization_id: t.organization_id,
+          user_id: t.profile_id || "",
+          employee_id: t.teacher_id || "",
+          full_name: t.full_name,
+          email: t.email,
+          department_id: t.department_id,
+          designation: t.designation || "",
+          is_active: t.is_active,
+          department: t.department,
+        }));
+        setTeachers(mapped);
+      } else {
+        setTeachers([]);
+      }
+    } catch (err) {
+      console.error("Failed to fetch teachers from API:", err);
+      setTeachers([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchDepartments = async () => {
+    try {
+      const res = await departmentsApi.list();
+      setDepartments(res?.data || []);
+    } catch (err) {
+      console.error("Failed to fetch departments:", err);
+      setDepartments([]);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const dept = params.get("department");
-      if (dept) {
-        setDeptFilter(dept);
-      }
-    }
+    fetchTeachers();
+    fetchDepartments();
   }, []);
 
   const filtered = useMemo(() => {
-    return mockTeachers.filter((t) => {
+    return teachers.filter((t) => {
       const matchSearch =
         !search ||
         t.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -333,7 +382,7 @@ export default function TeachersPage() {
       const matchDept = deptFilter === "all" || t.department_id === deptFilter;
       return matchSearch && matchDept;
     });
-  }, [search, deptFilter]);
+  }, [teachers, search, deptFilter]);
 
   return (
     <DashboardLayout
@@ -341,16 +390,16 @@ export default function TeachersPage() {
     >
       <PageHeader
         title="Teachers"
-        description={`${mockTeachers.length} faculty members active across ${mockDepartments.length} departments`}
+        description={`${teachers.length} faculty members active across ${departments.length} departments`}
         actions={
           <>
             <Button variant="outline" size="sm" className="gap-1.5">
               <Download className="w-4 h-4" />
               Export Directory
             </Button>
-            <Button size="sm" className="btn-brand gap-1.5">
+            <Button size="sm" className="btn-brand gap-1.5" onClick={() => setIsInviteModalOpen(true)}>
               <Plus className="w-4 h-4" />
-              Add Teacher
+              Invite Teacher
             </Button>
           </>
         }
@@ -378,7 +427,7 @@ export default function TeachersPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
-            {mockDepartments.map((d) => (
+            {departments.map((d) => (
               <SelectItem key={d.id} value={d.id}>
                 {d.name}
               </SelectItem>
@@ -394,126 +443,133 @@ export default function TeachersPage() {
         transition={{ delay: 0.15 }}
         className="rounded-xl border bg-card shadow-card overflow-hidden"
       >
-        <Table>
-          <TableHeader>
-            <TableRow className="bg-muted/40">
-              <TableHead>Teacher</TableHead>
-              <TableHead>Teacher ID</TableHead>
-              <TableHead>Department</TableHead>
-              <TableHead>Designation</TableHead>
-              <TableHead>Class Attendance</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
-                  <div className="flex flex-col items-center gap-2 text-muted-foreground">
-                    <GraduationCap className="w-8 h-8 opacity-40" />
-                    <p className="text-sm">No teachers found</p>
-                  </div>
-                </TableCell>
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 gap-2 text-muted-foreground">
+            <Loader2 className="w-8 h-8 text-brand-600 animate-spin" />
+            <p className="text-sm">Loading teachers...</p>
+          </div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-muted/40">
+                <TableHead>Teacher</TableHead>
+                <TableHead>Teacher ID</TableHead>
+                <TableHead>Department</TableHead>
+                <TableHead>Designation</TableHead>
+                <TableHead>Class Attendance</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              filtered.map((teacher, i) => {
-                const stats = getTeacherStats(teacher);
-                return (
-                  <motion.tr
-                    key={teacher.id}
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.02 }}
-                    className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
-                  >
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={teacher.avatar_url} />
-                          <AvatarFallback className="text-xs bg-brand-100 text-brand-700">
-                            {teacher.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <p className="text-sm font-medium">{teacher.full_name}</p>
-                          <p className="text-xs text-muted-foreground">{teacher.email}</p>
-                        </div>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground font-mono">
-                      {teacher.employee_id}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {teacher.department?.code ?? "—"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {teacher.designation ?? "Faculty Member"}
-                    </TableCell>
-                    {/* Class attendance mini-stat */}
-                    <TableCell>
-                      <div className="flex items-center gap-2 min-w-[120px]">
-                        <div className="flex-1">
-                          <div className="flex items-center justify-between mb-0.5">
-                            <span className="text-xs text-muted-foreground">
-                              {stats.totalPresent}/{stats.totalEnrolled}
-                            </span>
-                            <span className={cn(
-                              "text-xs font-semibold",
-                              stats.overallPct >= 75 ? "text-success" : stats.overallPct >= 60 ? "text-warning" : "text-danger"
-                            )}>
-                              {stats.overallPct}%
-                            </span>
+            </TableHeader>
+            <TableBody>
+              {filtered.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-12">
+                    <div className="flex flex-col items-center gap-2 text-muted-foreground">
+                      <GraduationCap className="w-8 h-8 opacity-40" />
+                      <p className="text-sm">No teachers found</p>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filtered.map((teacher, i) => {
+                  const stats = getTeacherStats(teacher, departments);
+                  return (
+                    <motion.tr
+                      key={teacher.id}
+                      initial={{ opacity: 0, x: -8 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.02 }}
+                      className="border-b border-border last:border-0 hover:bg-muted/30 transition-colors"
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={teacher.avatar_url} />
+                            <AvatarFallback className="text-xs bg-brand-100 text-brand-700">
+                              {teacher.full_name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="text-sm font-medium">{teacher.full_name}</p>
+                            <p className="text-xs text-muted-foreground">{teacher.email}</p>
                           </div>
-                          <Progress value={stats.overallPct} className="h-1.5" />
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={cn(
-                        "text-xs font-medium px-2 py-0.5 rounded-full",
-                        teacher.is_active
-                          ? "bg-success/10 text-success"
-                          : "bg-muted text-muted-foreground"
-                      )}>
-                        {teacher.is_active ? "Active" : "Inactive"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger
-                          render={
-                            <Button variant="ghost" size="icon" className="h-7 w-7">
-                              <MoreHorizontal className="w-4 h-4" />
-                            </Button>
-                          }
-                        />
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setProfileTeacher(teacher)}>
-                            <Eye className="mr-2 h-4 w-4" /> View Profile
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEditTeacher(teacher)}>
-                            <Pencil className="mr-2 h-4 w-4" /> Edit Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-danger focus:text-danger">
-                            <Trash2 className="mr-2 h-4 w-4" /> Remove Teacher
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </motion.tr>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground font-mono">
+                        {teacher.employee_id}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {teacher.department?.code ?? "—"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {teacher.designation ?? "Faculty Member"}
+                      </TableCell>
+                      {/* Class attendance mini-stat */}
+                      <TableCell>
+                        <div className="flex items-center gap-2 min-w-[120px]">
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between mb-0.5">
+                              <span className="text-xs text-muted-foreground">
+                                {stats.totalPresent}/{stats.totalEnrolled}
+                              </span>
+                              <span className={cn(
+                                "text-xs font-semibold",
+                                stats.overallPct >= 75 ? "text-success" : stats.overallPct >= 60 ? "text-warning" : "text-danger"
+                              )}>
+                                {stats.overallPct}%
+                              </span>
+                            </div>
+                            <Progress value={stats.overallPct} className="h-1.5" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <span className={cn(
+                          "text-xs font-medium px-2 py-0.5 rounded-full",
+                          teacher.is_active
+                            ? "bg-success/10 text-success"
+                            : "bg-muted text-muted-foreground"
+                        )}>
+                          {teacher.is_active ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger
+                            render={
+                              <Button variant="ghost" size="icon" className="h-7 w-7">
+                                <MoreHorizontal className="w-4 h-4" />
+                              </Button>
+                            }
+                          />
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem onClick={() => setProfileTeacher(teacher)}>
+                              <Eye className="mr-2 h-4 w-4" /> View Profile
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setEditTeacher(teacher)}>
+                              <Pencil className="mr-2 h-4 w-4" /> Edit Details
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-danger focus:text-danger">
+                              <Trash2 className="mr-2 h-4 w-4" /> Remove Teacher
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </motion.tr>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        )}
 
         {/* Footer */}
         <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
           <p className="text-xs text-muted-foreground">
-            Showing {filtered.length} of {mockTeachers.length} teachers
+            Showing {filtered.length} of {teachers.length} teachers
           </p>
         </div>
       </motion.div>
@@ -524,15 +580,22 @@ export default function TeachersPage() {
           <TeacherProfileModal
             teacher={profileTeacher}
             onClose={() => setProfileTeacher(null)}
+            depts={departments}
           />
         )}
         {editTeacher && (
           <EditTeacherModal
             teacher={editTeacher}
             onClose={() => setEditTeacher(null)}
+            depts={departments}
           />
         )}
       </AnimatePresence>
+      <InviteTeacherModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+        onSuccess={fetchTeachers}
+      />
     </DashboardLayout>
   );
 }

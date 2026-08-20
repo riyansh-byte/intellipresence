@@ -1,5 +1,5 @@
 // ============================================================
-// AttendAI — Mock / Demo Data
+// IntelliPresence — Mock / Demo Data
 // Realistic data for all dashboard views without a backend
 // ============================================================
 
@@ -53,12 +53,12 @@ export const mockDepartments: Department[] = [
 // ─────────────────────────────────────────
 
 export const mockTeachers: Teacher[] = [
-  { id: "t001", user_id: "u_t001", employee_id: "EMP001", full_name: "Dr. Priya Sharma", email: "priya.sharma@attendai.edu", department_id: "dept_001", designation: "Associate Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Priya`, created_at: daysAgo(300), updated_at: daysAgo(1) },
-  { id: "t002", user_id: "u_t002", employee_id: "EMP002", full_name: "Prof. Rahul Mehta", email: "rahul.mehta@attendai.edu", department_id: "dept_002", designation: "Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul`, created_at: daysAgo(290), updated_at: daysAgo(2) },
-  { id: "t003", user_id: "u_t003", employee_id: "EMP003", full_name: "Ms. Ananya Patel", email: "ananya.patel@attendai.edu", department_id: "dept_003", designation: "Assistant Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya`, created_at: daysAgo(280), updated_at: daysAgo(1) },
-  { id: "t004", user_id: "u_t004", employee_id: "EMP004", full_name: "Mr. Vikram Singh", email: "vikram.singh@attendai.edu", department_id: "dept_001", designation: "Assistant Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram`, created_at: daysAgo(250), updated_at: daysAgo(3) },
-  { id: "t005", user_id: "u_t005", employee_id: "EMP005", full_name: "Dr. Sunita Rao", email: "sunita.rao@attendai.edu", department_id: "dept_005", designation: "Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Sunita`, created_at: daysAgo(220), updated_at: daysAgo(1) },
-  { id: "t006", user_id: "u_t006", employee_id: "EMP006", full_name: "Mr. Arjun Kumar", email: "arjun.kumar@attendai.edu", department_id: "dept_004", designation: "Lecturer", is_active: false, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun`, created_at: daysAgo(200), updated_at: daysAgo(30) },
+  { id: "t001", user_id: "u_t001", employee_id: "EMP001", full_name: "Dr. Priya Sharma", email: "priya.sharma@IntelliPresence.edu", department_id: "dept_001", designation: "Associate Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Priya`, created_at: daysAgo(300), updated_at: daysAgo(1) },
+  { id: "t002", user_id: "u_t002", employee_id: "EMP002", full_name: "Prof. Rahul Mehta", email: "rahul.mehta@IntelliPresence.edu", department_id: "dept_002", designation: "Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Rahul`, created_at: daysAgo(290), updated_at: daysAgo(2) },
+  { id: "t003", user_id: "u_t003", employee_id: "EMP003", full_name: "Ms. Ananya Patel", email: "ananya.patel@IntelliPresence.edu", department_id: "dept_003", designation: "Assistant Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Ananya`, created_at: daysAgo(280), updated_at: daysAgo(1) },
+  { id: "t004", user_id: "u_t004", employee_id: "EMP004", full_name: "Mr. Vikram Singh", email: "vikram.singh@IntelliPresence.edu", department_id: "dept_001", designation: "Assistant Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Vikram`, created_at: daysAgo(250), updated_at: daysAgo(3) },
+  { id: "t005", user_id: "u_t005", employee_id: "EMP005", full_name: "Dr. Sunita Rao", email: "sunita.rao@IntelliPresence.edu", department_id: "dept_005", designation: "Professor", is_active: true, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Sunita`, created_at: daysAgo(220), updated_at: daysAgo(1) },
+  { id: "t006", user_id: "u_t006", employee_id: "EMP006", full_name: "Mr. Arjun Kumar", email: "arjun.kumar@IntelliPresence.edu", department_id: "dept_004", designation: "Lecturer", is_active: false, organization_id: ORG_ID, avatar_url: `https://api.dicebear.com/7.x/avataaars/svg?seed=Arjun`, created_at: daysAgo(200), updated_at: daysAgo(30) },
 ];
 
 // ─────────────────────────────────────────
@@ -76,7 +76,7 @@ export const mockStudents: Student[] = studentNames.map((name, i) => ({
   id: `s${String(i + 1).padStart(3, "0")}`,
   student_id: `STU${String(2024001 + i)}`,
   full_name: name,
-  email: `${name.toLowerCase().replace(/\s+/g, ".")}@student.attendai.edu`,
+  email: `${name.toLowerCase().replace(/\s+/g, ".")}@student.IntelliPresence.edu`,
   department_id: mockDepartments[i % mockDepartments.length].id,
   department: mockDepartments[i % mockDepartments.length],
   roll_number: `${mockDepartments[i % mockDepartments.length].code}${String(i + 1).padStart(3, "0")}`,

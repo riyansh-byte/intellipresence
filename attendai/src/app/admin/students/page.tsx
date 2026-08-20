@@ -15,9 +15,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AttendancePctBadge } from "@/components/ui/attendance-badge";
-import { mockStudents, mockDepartments } from "@/lib/mock-data";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useState, useMemo, useEffect } from "react";
+import { studentsApi, departmentsApi } from "@/lib/api";
 import {
   Search, Plus, MoreHorizontal, Eye, Pencil, Trash2,
   Download, Upload, GraduationCap, LayoutList, LayoutGrid,
@@ -25,14 +25,15 @@ import {
   Mail, Hash, User, BookOpen, Save,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { Student } from "@/types";
+import type { Department, Student } from "@/types";
+import { InviteStudentModal } from "@/components/InviteStudentModal";
 
 // ─────────────────────────────────────────
 // Helpers
 // ─────────────────────────────────────────
 
-function getDeptName(id: string) {
-  return mockDepartments.find((d) => d.id === id)?.name ?? "Unknown";
+function getDeptName(id: string, departments: Department[]) {
+  return departments.find((d) => d.id === id)?.name ?? "Unknown";
 }
 
 // Fake per-student attendance breakdown (since we only have overall %)
@@ -60,7 +61,7 @@ function getAttendanceBreakdown(student: Student) {
 // Student Profile Modal
 // ─────────────────────────────────────────
 
-function StudentProfileModal({ student, onClose }: { student: Student; onClose: () => void }) {
+function StudentProfileModal({ student, departments, onClose }: { student: Student; departments: Department[]; onClose: () => void }) {
   const breakdown = getAttendanceBreakdown(student);
   const pct = student.attendance_percentage ?? 0;
   const status = pct >= 75 ? "good" : pct >= 60 ? "warning" : "danger";
@@ -116,7 +117,7 @@ function StudentProfileModal({ student, onClose }: { student: Student; onClose: 
             {[
               { icon: Hash, label: "Student ID", value: student.student_id },
               { icon: BookOpen, label: "Roll Number", value: student.roll_number },
-              { icon: User, label: "Department", value: getDeptName(student.department_id) },
+              { icon: User, label: "Department", value: getDeptName(student.department_id, departments) },
               { icon: Mail, label: "Email", value: student.email ?? "—" },
             ].map(({ icon: Icon, label, value }) => (
               <div key={label} className="bg-muted/40 rounded-xl p-3">
@@ -207,7 +208,7 @@ function StudentProfileModal({ student, onClose }: { student: Student; onClose: 
 // Edit Student Modal
 // ─────────────────────────────────────────
 
-function EditStudentModal({ student, onClose }: { student: Student; onClose: () => void }) {
+function EditStudentModal({ student, departments, onClose }: { student: Student; departments: Department[]; onClose: () => void }) {
   const [form, setForm] = useState({
     full_name: student.full_name,
     email: student.email ?? "",
@@ -268,7 +269,7 @@ function EditStudentModal({ student, onClose }: { student: Student; onClose: () 
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {mockDepartments.map((d) => (
+                {departments.map((d) => (
                   <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
                 ))}
               </SelectContent>
@@ -297,7 +298,7 @@ function DeptGroup({
   onViewProfile,
   onEditStudent,
 }: {
-  dept: typeof mockDepartments[0];
+  dept: Department;
   students: Student[];
   onViewProfile: (s: Student) => void;
   onEditStudent: (s: Student) => void;
@@ -433,26 +434,47 @@ function DeptGroup({
 // ─────────────────────────────────────────
 
 export default function StudentsPage() {
+  const initialDepartment = () => {
+    if (typeof window === "undefined") return null;
+    return new URLSearchParams(window.location.search).get("department");
+  };
+
+  const [students, setStudents] = useState<Student[]>([]);
+  const [departments, setDepartments] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [search, setSearch] = useState("");
-  const [deptFilter, setDeptFilter] = useState("all");
+  const [deptFilter, setDeptFilter] = useState(() => initialDepartment() ?? "all");
   const [statusFilter, setStatusFilter] = useState("all");
-  const [viewMode, setViewMode] = useState<"list" | "department">("department");
+  const [viewMode, setViewMode] = useState<"list" | "department">(
+    initialDepartment() ? "list" : "department"
+  );
   const [profileStudent, setProfileStudent] = useState<Student | null>(null);
   const [editStudent, setEditStudent] = useState<Student | null>(null);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+
+  const fetchStudentsData = async () => {
+    setLoading(true);
+    try {
+      const [sRes, dRes] = await Promise.all([
+        studentsApi.list() as any,
+        departmentsApi.list() as any,
+      ]);
+      setStudents(sRes?.data || []);
+      setDepartments(dRes?.data || []);
+    } catch (err) {
+      console.error("Failed to load students/departments:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const dept = params.get("department");
-      if (dept) {
-        setDeptFilter(dept);
-        setViewMode("list"); // Auto switch to list mode to show filtered results clearly
-      }
-    }
+    fetchStudentsData();
   }, []);
 
   const filtered = useMemo(() => {
-    return mockStudents.filter((s) => {
+    return students.filter((s) => {
       const matchSearch =
         !search ||
         s.full_name.toLowerCase().includes(search.toLowerCase()) ||
@@ -465,18 +487,17 @@ export default function StudentsPage() {
         (statusFilter === "inactive" && !s.is_active);
       return matchSearch && matchDept && matchStatus;
     });
-  }, [search, deptFilter, statusFilter]);
+  }, [students, search, deptFilter, statusFilter]);
 
   // Group by department
   const byDept = useMemo(() => {
-    return mockDepartments
+    return departments
       .filter((d) => deptFilter === "all" || d.id === deptFilter)
       .map((d) => ({
         dept: d,
         students: filtered.filter((s) => s.department_id === d.id),
-      }))
-      .filter((g) => g.students.length > 0);
-  }, [filtered, deptFilter]);
+      }));
+  }, [departments, filtered, deptFilter]);
 
   return (
     <DashboardLayout
@@ -484,7 +505,7 @@ export default function StudentsPage() {
     >
       <PageHeader
         title="Students"
-        description={`${mockStudents.length} students enrolled across ${mockDepartments.length} departments`}
+        description={`${students.length} students enrolled across ${departments.length} departments`}
         actions={
           <>
             <Button variant="outline" size="sm" className="gap-1.5">
@@ -495,9 +516,9 @@ export default function StudentsPage() {
               <Download className="w-4 h-4" />
               Export
             </Button>
-            <Button size="sm" className="btn-brand gap-1.5">
+            <Button size="sm" className="btn-brand gap-1.5" onClick={() => setIsInviteModalOpen(true)}>
               <Plus className="w-4 h-4" />
-              Add Student
+              Invite Student
             </Button>
           </>
         }
@@ -525,7 +546,7 @@ export default function StudentsPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Departments</SelectItem>
-            {mockDepartments.map((d) => (
+            {departments.map((d) => (
               <SelectItem key={d.id} value={d.id}>
                 {d.name}
               </SelectItem>
@@ -697,7 +718,7 @@ export default function StudentsPage() {
             </Table>
             <div className="flex items-center justify-between px-4 py-3 border-t border-border bg-muted/20">
               <p className="text-xs text-muted-foreground">
-                Showing {filtered.length} of {mockStudents.length} students
+                Showing {filtered.length} of {students.length} students
               </p>
             </div>
           </div>
@@ -709,16 +730,22 @@ export default function StudentsPage() {
         {profileStudent && (
           <StudentProfileModal
             student={profileStudent}
+            departments={departments}
             onClose={() => setProfileStudent(null)}
           />
         )}
         {editStudent && (
           <EditStudentModal
             student={editStudent}
+            departments={departments}
             onClose={() => setEditStudent(null)}
           />
         )}
       </AnimatePresence>
+      <InviteStudentModal
+        isOpen={isInviteModalOpen}
+        onClose={() => setIsInviteModalOpen(false)}
+      />
     </DashboardLayout>
   );
 }

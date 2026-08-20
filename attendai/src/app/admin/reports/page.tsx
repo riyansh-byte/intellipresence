@@ -176,7 +176,7 @@ export default function ReportsPage() {
               <div className="text-xs">
                 <h4 className="font-semibold">AWS S3 Synced</h4>
                 <p className="text-muted-foreground mt-0.5 leading-snug">
-                  Reports compile in backend nodes and push directly into bucket <code className="bg-muted px-1 py-0.5 rounded">attendai-reports</code>.
+                  Reports compile in backend nodes and push directly into bucket <code className="bg-muted px-1 py-0.5 rounded">IntelliPresence-reports</code>.
                 </p>
               </div>
             </div>

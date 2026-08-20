@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Shield, Loader2, ArrowLeft, Mail, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
+import { createSupabaseClient } from "@/lib/supabase/client";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -22,25 +23,39 @@ export default function ForgotPasswordPage() {
     }
 
     setIsLoading(true);
-    // Simulate API email request
-    await new Promise((resolve) => setTimeout(resolve, 1200));
-    setIsLoading(false);
-    setSubmitted(true);
-    toast.success("Recovery instructions sent!");
+    try {
+      // Fresh client instance ensures PKCE verifier is written to cookies (not localStorage)
+      const supabase = createSupabaseClient();
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+      
+      if (error) {
+        toast.error(error.message);
+        return;
+      }
+      
+      setSubmitted(true);
+      toast.success("Recovery instructions sent!");
+    } catch {
+      toast.error("Something went wrong, please try again");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 bg-background relative font-sans overflow-hidden">
       {/* Background decorations */}
       <div className="absolute top-1/4 left-1/4 w-80 h-80 bg-brand-500/5 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-violet-500/5 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
 
       {/* Logo Header */}
       <Link href="/" className="flex items-center gap-2 mb-8 relative z-10">
         <div className="w-8 h-8 rounded-lg gradient-brand flex items-center justify-center shadow-brand-sm">
           <Shield className="w-4 h-4 text-white" />
         </div>
-        <span className="text-sm font-bold gradient-text">AttendAI</span>
+        <span className="text-sm font-bold gradient-text">IntelliPresence</span>
       </Link>
 
       <motion.div
@@ -53,7 +68,7 @@ export default function ForgotPasswordPage() {
             <div className="mb-6 text-center">
               <h1 className="text-xl font-bold tracking-tight">Forgot password?</h1>
               <p className="text-xs text-muted-foreground mt-1.5">
-                No problem. Enter your email and we'll send you reset instructions.
+                No problem. Enter your email and we&apos;ll send you reset instructions.
               </p>
             </div>
 
@@ -96,14 +111,14 @@ export default function ForgotPasswordPage() {
             </div>
             <h1 className="text-xl font-bold tracking-tight">Check your email</h1>
             <p className="text-xs text-muted-foreground leading-relaxed max-w-xs mx-auto">
-              We've sent a link to <span className="font-semibold text-foreground">{email}</span>. Click the link in the email to reset your password.
+              We&apos;ve sent a link to <span className="font-semibold text-foreground">{email}</span>. Click the link in the email to reset your password.
             </p>
             <Button
               variant="outline"
               onClick={() => setSubmitted(false)}
               className="mt-2 text-xs"
             >
-              Didn't receive it? Try again
+              Didn&apos;t receive it? Try again
             </Button>
           </div>
         )}
