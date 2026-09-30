@@ -2,12 +2,119 @@ from flask import Blueprint, request, g
 from uuid import UUID
 from sqlalchemy.exc import SQLAlchemyError, IntegrityError
 from app.utils.response import success_response, error_response
-from app.utils.serializers import teacher_to_dict
+from app.utils.serializers import teacher_to_dict, course_to_dict
 from app.middleware.auth_middleware import require_auth, require_role
 from app.database import get_db
-from app.models import Teacher
+from app.models import Teacher, Course, AttendanceSession, Attendance
 
 teachers_bp = Blueprint("teachers", __name__)
+
+
+@teachers_bp.route("/me", methods=["GET"])
+@require_auth
+@require_role(["teacher"])
+def get_current_teacher():
+    """Return the authenticated teacher's own profile and department info."""
+    db = get_db()
+
+    try:
+        teacher = (
+            db.query(Teacher)
+            .filter(
+                Teacher.profile_id == g.user_id,
+                Teacher.organization_id == g.organization_id,
+                Teacher.is_active.is_(True),
+            )
+            .one_or_none()
+        )
+
+        if not teacher:
+            return error_response("Teacher profile not found for this account", 404)
+
+        return success_response(
+            data=teacher_to_dict(teacher, include_department=True, include_profile=True),
+            message="Teacher profile loaded",
+        )
+    except SQLAlchemyError as e:
+        return error_response(f"Failed to load teacher profile: {str(e)}", 500)
+
+
+@teachers_bp.route("/me/courses", methods=["GET"])
+@require_auth
+@require_role(["teacher"])
+def get_teacher_courses():
+    """Return courses in the authenticated teacher's department with live attendance stats."""
+    db = get_db()
+
+    try:
+        teacher = (
+            db.query(Teacher)
+            .filter(
+                Teacher.profile_id == g.user_id,
+                Teacher.organization_id == g.organization_id,
+                Teacher.is_active.is_(True),
+            )
+            .one_or_none()
+        )
+
+        if not teacher:
+            return error_response("Teacher profile not found", 404)
+
+        # Fetch courses in this teacher's department (or all org courses if no dept)
+        query = db.query(Course).filter(
+            Course.organization_id == g.organization_id
+        )
+        if teacher.department_id:
+            query = query.filter(Course.department_id == teacher.department_id)
+
+        courses = query.order_by(Course.name).all()
+
+        result = []
+        for course in courses:
+            # Count sessions run by this teacher for this course
+            sessions = (
+                db.query(AttendanceSession)
+                .filter(
+                    AttendanceSession.course_id == course.id,
+                    AttendanceSession.teacher_id == teacher.id,
+                    AttendanceSession.organization_id == g.organization_id,
+                )
+                .all()
+            )
+            session_ids = [s.id for s in sessions]
+
+            # Count students who appeared in at least one session
+            total_records = 0
+            present_records = 0
+            if session_ids:
+                records = (
+                    db.query(Attendance)
+                    .filter(
+                        Attendance.session_id.in_(session_ids),
+                        Attendance.organization_id == g.organization_id,
+                    )
+                    .all()
+                )
+                total_records = len(records)
+                present_records = sum(1 for r in records if r.status in ("present", "late"))
+
+            avg_attendance = (
+                round((present_records / total_records) * 100, 1)
+                if total_records else 0
+            )
+
+            course_data = course_to_dict(course, include_department=True)
+            course_data["sessions_run"] = len(sessions)
+            course_data["avg_attendance_pct"] = avg_attendance
+
+            result.append(course_data)
+
+        return success_response(
+            data=result,
+            message="Teacher's course list loaded with live stats",
+        )
+    except SQLAlchemyError as e:
+        return error_response(f"Failed to load courses: {str(e)}", 500)
 
 @teachers_bp.route("/", methods=["GET"])
 @require_auth

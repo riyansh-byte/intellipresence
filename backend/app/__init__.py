@@ -29,6 +29,7 @@ def create_app():
     from app.routes.reports import reports_bp
     from app.routes.storage import storage_bp
     from app.routes.workflows import workflows_bp
+    from app.routes.leaves import leaves_bp
 
     app.register_blueprint(auth_bp, url_prefix="/api/auth")
     app.register_blueprint(students_bp, url_prefix="/api/students")
@@ -41,6 +42,7 @@ def create_app():
     app.register_blueprint(reports_bp, url_prefix="/api/reports")
     app.register_blueprint(storage_bp, url_prefix="/api/storage")
     app.register_blueprint(workflows_bp, url_prefix="/api/workflows")
+    app.register_blueprint(leaves_bp, url_prefix="/api/leaves")
     
     # Root status check endpoint
     @app.route("/healthz", methods=["GET"])

@@ -1,0 +1,141 @@
+{
+  "name": "IntelliPresence - Attendance Anomaly Escalation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "attendance-anomaly",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-trigger",
+      "name": "Anomaly Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "attendai-anomaly-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{ $json.body.payload.consecutive_absences || 3 }}",
+              "operation": "largerEqual",
+              "value2": 3
+            }
+          ]
+        }
+      },
+      "id": "node-filter-severity",
+      "name": "Filter High Severity (>= 3 Absences)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#attendance-alerts",
+        "text": "🚨 *Attendance Anomaly Detected*",
+        "attachments": [
+          {
+            "color": "#ef4444",
+            "title": "=Student at Risk: {{ $json.body.payload.student_name }} ({{ $json.body.payload.roll_number }})",
+            "text": "=Course: {{ $json.body.payload.course_name }}\nConsecutive Absences: {{ $json.body.payload.consecutive_absences }}\nCurrent Rate: {{ $json.body.payload.attendance_percentage }}%\nReason/Pattern: Unexcused streak flagged by IntelliPresence AI engine."
+          }
+        ]
+      },
+      "id": "node-slack-alert",
+      "name": "Notify Faculty Channel",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2,
+      "position": [720, 200]
+    },
+    {
+      "parameters": {
+        "fromEmail": "alerts@intellipresence.edu",
+        "toEmail": "={{ $json.body.payload.student_email }}",
+        "subject": "Urgent: Attendance Counseling Advisory",
+        "text": "=Dear {{ $json.body.payload.student_name }},\n\nOur system detected 3 consecutive unexcused absences in {{ $json.body.payload.course_name }}. Please contact your HOD or faculty advisor immediately."
+      },
+      "id": "node-email-student",
+      "name": "Email Advisory to Student",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2,
+      "position": [720, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\n  \"status\": \"success\",\n  \"escalated\": true,\n  \"channels\": [\"slack\", \"email\"],\n  \"timestamp\": \"{{ $now.toISO() }}\"\n}"
+      },
+      "id": "node-respond-webhook",
+      "name": "Respond 200 OK",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [960, 300]
+    }
+  ],
+  "connections": {
+    "Anomaly Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Filter High Severity (>= 3 Absences)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter High Severity (>= 3 Absences)": {
+      "main": [
+        [
+          {
+            "node": "Notify Faculty Channel",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Email Advisory to Student",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Faculty Channel": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Advisory to Student": {
+      "main": [
+        [
+          {
+            "node": "Respond 200 OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

@@ -1,0 +1,77 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  IntelliPresence Serverless Architecture:
+  Automated Rekognition Attendance Processor & Async S3 Report Generator.
+
+Globals:
+  Function:
+    Timeout: 30
+    MemorySize: 512
+    Runtime: python3.11
+    Environment:
+      Variables:
+        AWS_REGION: us-east-1
+        AWS_REKOGNITION_COLLECTION_ID: intellipresence-faces-collection
+        AWS_S3_REPORTS_BUCKET: !Ref ReportsStorageBucket
+        REKOGNITION_THRESHOLD: "85.0"
+
+Resources:
+  # S3 Bucket for Raw Classroom Photos & Processed Reports
+  ClassroomUploadsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: attendai-classroom-captures
+      LifecycleConfiguration:
+        Rules:
+          - Id: ExpireOldPhotosAfter30Days
+            Status: Enabled
+            ExpirationInDays: 30
+
+  ReportsStorageBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: attendai-reports-storage
+
+  # Lambda 1: Attendance Processor (Triggered by S3 upload)
+  AttendanceProcessorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: attendance_processor/
+      Handler: lambda_function.lambda_handler
+      Policies:
+        - RekognitionReadPolicy:
+            CollectionId: intellipresence-faces-collection
+        - S3ReadPolicy:
+            BucketName: !Ref ClassroomUploadsBucket
+      Events:
+        PhotoUploadEvent:
+          Type: S3
+          Properties:
+            Bucket: !Ref ClassroomUploadsBucket
+            Events: s3:ObjectCreated:*
+            Filter:
+              S3Key:
+                Rules:
+                  - Name: prefix
+                    Value: captures/
+
+  # Lambda 2: Async Report Generator (SQS / Direct API call)
+  ReportGeneratorFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: report_generator/
+      Handler: lambda_function.lambda_handler
+      MemorySize: 1024
+      Timeout: 60
+      Policies:
+        - S3WritePolicy:
+            BucketName: !Ref ReportsStorageBucket
+
+Outputs:
+  ClassroomBucketName:
+    Description: S3 Bucket for student classroom snapshots
+    Value: !Ref ClassroomUploadsBucket
+  ReportsBucketName:
+    Description: S3 Bucket for generated PDF/CSV reports
+    Value: !Ref ReportsStorageBucket

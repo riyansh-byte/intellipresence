@@ -1,50 +1,33 @@
-# IntelliPresence — n8n Integration
+# IntelliPresence — n8n Workflow Automation
 
-This directory contains n8n workflow automation configurations for the IntelliPresence platform.
+This directory contains production-ready **n8n workflow definitions** for event-driven escalation and automated executive attendance reporting.
 
-## Structure
+---
 
-```
-n8n/
-├── workflows/     # Exported n8n workflow JSON files
-└── webhooks/      # Webhook endpoint configs and payload schemas
-```
+## ⚡ Workflows Included
 
-## Workflows
+| Workflow | Trigger | Action | Target File |
+|---|---|---|---|
+| **Attendance Anomaly Escalation** | Webhook (`/webhook/attendance-anomaly`) | Evaluates absent streaks, sends Slack alert to faculty channel, emails student advisory | [`attendance_anomaly_escalation.json`](./workflows/attendance_anomaly_escalation.json) |
+| **Daily Attendance Digest** | Scheduled Cron (`0 18 * * 1-5`) | Queries `/api/analytics/overview` and posts daily executive digest to leadership Slack | [`daily_attendance_digest.json`](./workflows/daily_attendance_digest.json) |
 
-| Workflow | Description |
-|---|---|
-| `attendance-alert.json` | Notify teachers/admins when attendance drops below threshold |
-| `daily-report.json` | Auto-generate and email daily attendance summary |
-| `late-mark-notification.json` | Trigger SMS/email when a student is marked late |
-| `leave-approval.json` | Automate leave request → approval → notification pipeline |
+---
 
-## Setup
+## 🔌 How to Import into n8n
 
-1. Install and run n8n (self-hosted or cloud):
-   ```bash
-   npx n8n start
-   ```
+1. Open your n8n instance (Cloud or self-hosted Docker at `http://localhost:5678`).
+2. Click **Workflows** ➔ **Import from File...**
+3. Select any `.json` file from the `workflows/` directory.
+4. Set credentials for Slack and SMTP/SES.
+5. Click **Publish / Activate**.
 
-2. Import workflow JSON files via the n8n UI:
-   - Go to **Workflows → Import from File**
-   - Select any `.json` from the `workflows/` folder
+---
 
-3. Configure the IntelliPresence webhook URL in n8n:
-   ```
-   https://your-domain.app/api/webhooks/n8n
-   ```
+## 🔒 Security & Backend Integration
 
-4. Set n8n credentials for Supabase, SMTP, and Twilio (SMS) as needed.
-
-## Webhook Payload Schema
-
-```json
-{
-  "event": "attendance.marked",
-  "organization_id": "org_xxx",
-  "student_id": "stu_xxx",
-  "status": "present | absent | late",
-  "timestamp": "ISO 8601"
-}
+The Flask backend [`workflows.py`](../../backend/app/routes/workflows.py) communicates with n8n using an HMAC shared secret header:
+```http
+POST https://n8n.yourdomain.com/webhook/attendance-anomaly
+X-AttendAI-Secret-Token: your-secret-token
+Content-Type: application/json
 ```
